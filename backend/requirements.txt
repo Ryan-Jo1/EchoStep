@@ -1,0 +1,4 @@
+flask==2.0.1
+requests==2.26.0
+redis==4.3.4
+flask-cors==3.0.10 

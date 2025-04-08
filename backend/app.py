@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import requests
 import redis
 from datetime import datetime, timedelta
 import os
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Redis Connection for caching
 redis_client = redis.Redis(host="redis", port=6379, decode_responses=True)
