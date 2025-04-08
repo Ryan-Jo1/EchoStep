@@ -1,19 +1,6 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:latest
-    container_name: travel_postgres
-    restart: always
-    environment:
-      POSTGRES_USER: RyanKJo
-      POSTGRES_PASSWORD: Sontelkulusevski71121
-      POSTGRES_DB: travel_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   redis:
     image: redis:latest
     container_name: travel_redis
@@ -30,9 +17,20 @@ services:
     ports:
       - "5000:5000"
     depends_on:
-      - postgres
       - redis
+    environment:
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+
+  frontend:
+    image: nginx:alpine
+    container_name: travel_frontend
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - flask
       
 volumes:
-  postgres_data:
   redis_data:

@@ -1,20 +1,116 @@
-from flask import Flask
-import psycopg2
+from flask import Flask, request, jsonify
+import requests
 import redis
+from datetime import datetime, timedelta
+import os
 
 app = Flask(__name__)
 
-# PostgreSQL Connection
-db_conn = psycopg2.connect(
-    dbname="travel_db",
-    user="RyanKJo",
-    password="Sontelkulusevski71121",
-    host="postgres",  # This matches the service name in docker-compose.yml
-    port=5432
-)
-
-# Redis Connection
+# Redis Connection for caching
 redis_client = redis.Redis(host="redis", port=6379, decode_responses=True)
+
+# Free Currency API configuration
+EXCHANGE_RATES_API_KEY = os.getenv('EXCHANGE_RATES_API_KEY')
+BASE_URL = "https://api.freecurrencyapi.com/v1/latest"
+
+def get_exchange_rate(from_currency, to_currency):
+    # Check cache first
+    cache_key = f"rate:{from_currency}:{to_currency}"
+    cached_rate = redis_client.get(cache_key)
+    
+    if cached_rate:
+        return float(cached_rate)
+    
+    try:
+        # Make API request
+        response = requests.get(
+            BASE_URL,
+            params={
+                "apikey": EXCHANGE_RATES_API_KEY,
+                "base_currency": from_currency,
+                "currencies": to_currency
+            }
+        )
+        response.raise_for_status()
+        data = response.json()
+        
+        if "data" not in data:
+            raise Exception("Invalid response from API")
+        
+        rate = data["data"][to_currency]
+        
+        # Cache the rate for 1 hour
+        redis_client.setex(cache_key, 3600, str(rate))
+        
+        return rate
+    except Exception as e:
+        app.logger.error(f"Error fetching exchange rate: {str(e)}")
+        app.logger.error(f"Response: {response.text if 'response' in locals() else 'No response'}")
+        return None
+
+@app.route('/exchange-rate', methods=['GET'])
+def get_exchange_rate_endpoint():
+    from_currency = request.args.get('from', '').upper()
+    to_currency = request.args.get('to', '').upper()
+    
+    if not from_currency or not to_currency:
+        return jsonify({"error": "Please provide both 'from' and 'to' currency codes"}), 400
+    
+    rate = get_exchange_rate(from_currency, to_currency)
+    
+    if rate is None:
+        return jsonify({"error": "Could not fetch exchange rate"}), 500
+    
+    return jsonify({
+        "from_currency": from_currency,
+        "to_currency": to_currency,
+        "rate": rate,
+        "timestamp": datetime.utcnow().isoformat()
+    })
+
+@app.route('/convert', methods=['GET'])
+def convert_currency():
+    from_currency = request.args.get('from', '').upper()
+    to_currency = request.args.get('to', '').upper()
+    amount = request.args.get('amount', type=float)
+    
+    # Validate input
+    if not from_currency or not to_currency:
+        return jsonify({"error": "Please provide both 'from' and 'to' currency codes"}), 400
+    
+    if amount is None or amount <= 0:
+        return jsonify({"error": "Please provide a valid amount greater than 0"}), 400
+    
+    # Get exchange rate
+    rate = get_exchange_rate(from_currency, to_currency)
+    
+    if rate is None:
+        return jsonify({"error": "Could not fetch exchange rate"}), 500
+    
+    # Calculate converted amount
+    converted_amount = amount * rate
+    
+    return jsonify({
+        "from_currency": from_currency,
+        "to_currency": to_currency,
+        "amount": amount,
+        "converted_amount": converted_amount,
+        "rate": rate,
+        "timestamp": datetime.utcnow().isoformat()
+    })
+
+@app.route('/translate', methods=['GET'])
+def translate():
+    phrase = request.args.get('phrase')
+    lang = request.args.get('lang')
+
+    translations = {
+        "hello": {"es": "hola", "fr": "bonjour"},
+        "thank you": {"es": "gracias", "fr": "merci"}
+    }
+
+    translated_text = translations.get(phrase, {}).get(lang, "Translation not found")
+    return jsonify({"translated_text": translated_text})
 
 @app.route('/')
 def home():
@@ -22,3 +118,4 @@ def home():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+

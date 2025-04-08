@@ -8,7 +8,7 @@ WORKDIR /app
 COPY . .
 
 # Install dependencies
-RUN pip install --no-cache-dir flask psycopg2 redis
+RUN pip install --no-cache-dir flask redis requests
 
 # Expose Flask port
 EXPOSE 5000
