@@ -1,36 +1,14 @@
-async function convert() {
-    const amount = document.getElementById('amount').value;
-    const fromCurrency = document.getElementById('fromCurrency').value;
-    const toCurrency = document.getElementById('toCurrency').value;
-    const errorElement = document.getElementById('error');
-    const resultElement = document.getElementById('result');
-
-    // Clear previous error and result
-    errorElement.textContent = '';
-    resultElement.value = '';
-
-    // Validate input
-    if (!amount || amount <= 0) {
-        errorElement.textContent = 'Please enter a valid amount';
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/convert?from=${fromCurrency}&to=${toCurrency}&amount=${amount}`);
-        const data = await response.json();
-
-        if (response.ok) {
-            resultElement.value = data.converted_amount.toFixed(2);
-            // Clear any previous error
-            errorElement.textContent = '';
-        } else {
-            errorElement.textContent = data.error || 'An error occurred while converting currencies';
-        }
-    } catch (error) {
-        errorElement.textContent = 'Error connecting to the server. Please try again later.';
-        console.error('Error:', error);
-    }
-}
+// Currency conversion functionality
+const amountInput = document.getElementById('amount');
+const fromCurrency = document.getElementById('from-currency');
+const toCurrency = document.getElementById('to-currency');
+const convertBtn = document.getElementById('convert-btn');
+const resultDisplay = document.getElementById('result-display');
+const loadingIndicator = document.getElementById('loading-indicator');
+const exchangeRateElement = document.getElementById('exchange-rate');
+const lastUpdatedElement = document.getElementById('last-updated');
+const errorMessage = document.getElementById('error-message');
+const swapBtn = document.getElementById('swap-btn');
 
 // Function to swap currencies
 function swapCurrencies() {
@@ -51,23 +29,11 @@ function swapCurrencies() {
     }, 300);
 }
 
-// Currency conversion functionality
-const amountInput = document.getElementById('amount');
-const fromCurrency = document.getElementById('from-currency');
-const toCurrency = document.getElementById('to-currency');
-const convertBtn = document.getElementById('convert-btn');
-const resultDisplay = document.getElementById('result-display');
-const loadingIndicator = document.getElementById('loading-indicator');
-const exchangeRateElement = document.getElementById('exchange-rate');
-const lastUpdatedElement = document.getElementById('last-updated');
-const errorMessage = document.getElementById('error-message');
-const swapBtn = document.getElementById('swap-btn');
-
 let exchangeRates = {};
 let lastUpdateTime = null;
 
 // Configuration
-const API_BASE_URL = ''; // Remove the explicit URL since nginx will handle the routing
+const API_BASE_URL = '/api'; // Add the /api prefix
 
 // Function to get flag emoji from currency code
 function getCurrencyFlag(currencyCode) {
@@ -104,7 +70,7 @@ async function fetchExchangeRates() {
         const from = fromCurrency.value;
         const to = toCurrency.value;
         
-        const response = await fetch(`/api/exchange-rate?from=${from}&to=${to}`);
+        const response = await fetch(`${API_BASE_URL}/exchange-rate?from=${from}&to=${to}`);
         if (!response.ok) {
             throw new Error('Failed to fetch exchange rates');
         }
@@ -156,26 +122,32 @@ async function convertCurrency() {
         
         const from = fromCurrency.value;
         const to = toCurrency.value;
-        const fromFlag = getCurrencyFlag(from);
-        const toFlag = getCurrencyFlag(to);
         
         const response = await fetch(`${API_BASE_URL}/convert?from=${from}&to=${to}&amount=${amount}`);
+        
         if (!response.ok) {
-            throw new Error('Failed to convert currency');
+            const errorText = await response.text();
+            console.error('Server error:', errorText);
+            throw new Error(`Failed to convert currency (Status: ${response.status})`);
         }
         
-        const data = await response.json();
-        const convertedAmount = data.converted_amount;
-        
-        resultDisplay.innerHTML = `
-            <h3>Conversion Result</h3>
-            <p>
-                ${fromFlag} ${amount.toLocaleString()} ${from} = 
-                ${toFlag} ${convertedAmount.toLocaleString()} ${to}
-            </p>
-        `;
-        
-        updateExchangeRateInfo();
+        try {
+            const data = await response.json();
+            const convertedAmount = data.converted_amount;
+            
+            resultDisplay.innerHTML = `
+                <h3>Conversion Result</h3>
+                <p>
+                    ${getCurrencyFlag(from)} ${amount.toLocaleString()} ${from} = 
+                    ${getCurrencyFlag(to)} ${convertedAmount.toLocaleString()} ${to}
+                </p>
+            `;
+            
+            updateExchangeRateInfo();
+        } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            throw new Error('Failed to parse server response');
+        }
     } catch (error) {
         errorMessage.textContent = error.message;
         errorMessage.classList.add('show');

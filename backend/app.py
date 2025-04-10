@@ -55,7 +55,7 @@ def get_exchange_rate(from_currency, to_currency):
         app.logger.error(f"Response: {response.text if 'response' in locals() else 'No response'}")
         return None
 
-@app.route('/exchange-rate', methods=['GET'])
+@app.route('/api/exchange-rate', methods=['GET'])
 def get_exchange_rate_endpoint():
     from_currency = request.args.get('from', '').upper()
     to_currency = request.args.get('to', '').upper()
@@ -75,7 +75,7 @@ def get_exchange_rate_endpoint():
         "timestamp": datetime.utcnow().isoformat()
     })
 
-@app.route('/convert', methods=['GET'])
+@app.route('/api/convert', methods=['GET'])
 def convert_currency():
     from_currency = request.args.get('from', '').upper()
     to_currency = request.args.get('to', '').upper()
@@ -106,7 +106,7 @@ def convert_currency():
         "timestamp": datetime.utcnow().isoformat()
     })
 
-@app.route('/translate', methods=['GET'])
+@app.route('/api/translate', methods=['GET'])
 def translate():
     phrase = request.args.get('phrase')
     lang = request.args.get('lang')
@@ -119,9 +119,19 @@ def translate():
     translated_text = translations.get(phrase, {}).get(lang, "Translation not found")
     return jsonify({"translated_text": translated_text})
 
+@app.route('/api/')
 @app.route('/')
 def home():
     return {"message": "Travel API is running with currency conversion and walking routes!"}
+
+@app.route('/api/debug', methods=['GET'])
+def debug_endpoint():
+    """A simple endpoint to test API functionality"""
+    return jsonify({
+        "status": "ok",
+        "message": "API is working correctly",
+        "timestamp": datetime.utcnow().isoformat()
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
