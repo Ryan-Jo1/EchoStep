@@ -32,16 +32,23 @@ async function convert() {
     }
 }
 
+// Function to swap currencies
 function swapCurrencies() {
-    const fromCurrency = document.getElementById('fromCurrency');
-    const toCurrency = document.getElementById('toCurrency');
-    const temp = fromCurrency.value;
-    fromCurrency.value = toCurrency.value;
-    toCurrency.value = temp;
+    const fromValue = document.getElementById('from-currency').value;
+    const toValue = document.getElementById('to-currency').value;
     
-    // Clear result when currencies are swapped
-    document.getElementById('result').value = '';
-    document.getElementById('error').textContent = '';
+    document.getElementById('from-currency').value = toValue;
+    document.getElementById('to-currency').value = fromValue;
+    
+    fetchExchangeRates();
+    
+    // Add animation class
+    document.getElementById('swap-btn').classList.add('active');
+    
+    // Remove animation class after animation completes
+    setTimeout(() => {
+        document.getElementById('swap-btn').classList.remove('active');
+    }, 300);
 }
 
 // Currency conversion functionality
@@ -61,6 +68,32 @@ let lastUpdateTime = null;
 
 // Configuration
 const API_BASE_URL = ''; // Remove the explicit URL since nginx will handle the routing
+
+// Function to get flag emoji from currency code
+function getCurrencyFlag(currencyCode) {
+    currencyCode = currencyCode.toUpperCase();
+    if (currencyCode === 'EUR') return '🇪🇺';
+    if (currencyCode === 'GBP') return '🇬🇧';
+    if (currencyCode === 'USD') return '🇺🇸';
+    if (currencyCode === 'JPY') return '🇯🇵';
+    if (currencyCode === 'CNY') return '🇨🇳';
+    if (currencyCode === 'AUD') return '🇦🇺';
+    if (currencyCode === 'CAD') return '🇨🇦';
+    if (currencyCode === 'CHF') return '🇨🇭';
+    if (currencyCode === 'HKD') return '🇭🇰';
+    if (currencyCode === 'SGD') return '🇸🇬';
+    if (currencyCode === 'SEK') return '🇸🇪';
+    if (currencyCode === 'KRW') return '🇰🇷';
+    if (currencyCode === 'NOK') return '🇳🇴';
+    if (currencyCode === 'NZD') return '🇳🇿';
+    if (currencyCode === 'INR') return '🇮🇳';
+    if (currencyCode === 'MXN') return '🇲🇽';
+    if (currencyCode === 'TWD') return '🇹🇼';
+    if (currencyCode === 'ZAR') return '🇿🇦';
+    if (currencyCode === 'BRL') return '🇧🇷';
+    if (currencyCode === 'DKK') return '🇩🇰';
+    return '🏳️';
+}
 
 // Function to fetch exchange rates
 async function fetchExchangeRates() {
@@ -98,11 +131,13 @@ function updateExchangeRateInfo() {
     if (lastUpdateTime) {
         const from = fromCurrency.value;
         const to = toCurrency.value;
-        const fromFlag = fromCurrency.options[fromCurrency.selectedIndex].text.split(' ')[0];
-        const toFlag = toCurrency.options[toCurrency.selectedIndex].text.split(' ')[0];
         const rate = exchangeRates[to] / exchangeRates[from];
+        const fromFlag = getCurrencyFlag(from);
+        const toFlag = getCurrencyFlag(to);
         
-        exchangeRateElement.textContent = `${fromFlag} 1 ${from} = ${toFlag} ${rate.toFixed(6)} ${to}`;
+        exchangeRateElement.innerHTML = `
+            ${fromFlag} 1 ${from} = ${toFlag} ${rate.toFixed(6)} ${to}
+        `;
         lastUpdatedElement.textContent = `Last updated: ${lastUpdateTime.toLocaleString()}`;
     }
 }
@@ -121,10 +156,10 @@ async function convertCurrency() {
         
         const from = fromCurrency.value;
         const to = toCurrency.value;
-        const fromFlag = fromCurrency.options[fromCurrency.selectedIndex].text.split(' ')[0];
-        const toFlag = toCurrency.options[toCurrency.selectedIndex].text.split(' ')[0];
+        const fromFlag = getCurrencyFlag(from);
+        const toFlag = getCurrencyFlag(to);
         
-        const response = await fetch(`/api/convert?from=${from}&to=${to}&amount=${amount}`);
+        const response = await fetch(`${API_BASE_URL}/convert?from=${from}&to=${to}&amount=${amount}`);
         if (!response.ok) {
             throw new Error('Failed to convert currency');
         }
@@ -134,7 +169,10 @@ async function convertCurrency() {
         
         resultDisplay.innerHTML = `
             <h3>Conversion Result</h3>
-            <p>${fromFlag} ${amount.toLocaleString()} ${from} = ${toFlag} ${convertedAmount.toLocaleString()} ${to}</p>
+            <p>
+                ${fromFlag} ${amount.toLocaleString()} ${from} = 
+                ${toFlag} ${convertedAmount.toLocaleString()} ${to}
+            </p>
         `;
         
         updateExchangeRateInfo();
@@ -150,33 +188,9 @@ async function convertCurrency() {
 
 // Event listeners
 convertBtn.addEventListener('click', convertCurrency);
-fromCurrency.addEventListener('change', updateExchangeRateInfo);
-toCurrency.addEventListener('change', updateExchangeRateInfo);
+fromCurrency.addEventListener('change', fetchExchangeRates);
+toCurrency.addEventListener('change', fetchExchangeRates);
 swapBtn.addEventListener('click', swapCurrencies);
 
 // Initial fetch of exchange rates
-fetchExchangeRates();
-
-document.addEventListener('DOMContentLoaded', () => {
-    const fromCurrency = document.getElementById('from-currency');
-    const toCurrency = document.getElementById('to-currency');
-    const amountInput = document.getElementById('amount');
-    const convertBtn = document.getElementById('convert-btn');
-    const swapBtn = document.getElementById('swap-btn');
-    const resultDiv = document.getElementById('result');
-    const exchangeRateInfo = document.getElementById('exchange-rate-info');
-    const loadingIndicator = document.getElementById('loading-indicator');
-    const errorMessage = document.getElementById('error-message');
-
-    // Function to swap currencies
-    const swapCurrencies = () => {
-        const temp = fromCurrency.value;
-        fromCurrency.value = toCurrency.value;
-        toCurrency.value = temp;
-        // Trigger conversion after swap
-        convertCurrency();
-    };
-
-    // Add click event listener to swap button
-    swapBtn.addEventListener('click', swapCurrencies);
-}); 
+fetchExchangeRates(); 

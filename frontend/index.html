@@ -7,7 +7,19 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
+    <header class="app-header">
+        <div class="container">
+            <nav class="main-nav">
+                <a href="index.html" class="logo">TravelCompanion</a>
+                <ul class="nav-links">
+                    <li><a href="index.html" class="active">Currency Converter</a></li>
+                    <li><a href="routes.html">Walking Routes</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
         <h1>Currency Converter</h1>
         <div class="converter-section">
             <div class="converter-form">
@@ -34,13 +46,10 @@
                     <option value="RUB">🇷🇺 RUB - Russian Ruble</option>
                     <option value="ZAR">🇿🇦 ZAR - South African Rand</option>
                     <option value="TRY">🇹🇷 TRY - Turkish Lira</option>
-                    <option value="AED">🇦🇪 AED - UAE Dirham</option>
-                    <option value="SAR">🇸🇦 SAR - Saudi Riyal</option>
                     <option value="THB">🇹🇭 THB - Thai Baht</option>
                     <option value="MYR">🇲🇾 MYR - Malaysian Ringgit</option>
                     <option value="IDR">🇮🇩 IDR - Indonesian Rupiah</option>
                     <option value="PHP">🇵🇭 PHP - Philippine Peso</option>
-                    <option value="VND">🇻🇳 VND - Vietnamese Dong</option>
                     <option value="ILS">🇮🇱 ILS - Israeli Shekel</option>
                     <option value="PLN">🇵🇱 PLN - Polish Zloty</option>
                     <option value="CZK">🇨🇿 CZK - Czech Koruna</option>
@@ -48,9 +57,7 @@
                     <option value="RON">🇷🇴 RON - Romanian Leu</option>
                     <option value="BGN">🇧🇬 BGN - Bulgarian Lev</option>
                     <option value="HRK">🇭🇷 HRK - Croatian Kuna</option>
-                    <option value="ISK">🇮🇸 ISK - Icelandic Krona</option>
                     <option value="UAH">🇺🇦 UAH - Ukrainian Hryvnia</option>
-                    <option value="KZT">🇰🇿 KZT - Kazakhstani Tenge</option>
                 </select>
                 <button id="swap-btn" class="swap-btn" title="Swap currencies">⇄</button>
                 <select id="to-currency">
@@ -75,13 +82,10 @@
                     <option value="RUB">🇷🇺 RUB - Russian Ruble</option>
                     <option value="ZAR">🇿🇦 ZAR - South African Rand</option>
                     <option value="TRY">🇹🇷 TRY - Turkish Lira</option>
-                    <option value="AED">🇦🇪 AED - UAE Dirham</option>
-                    <option value="SAR">🇸🇦 SAR - Saudi Riyal</option>
                     <option value="THB">🇹🇭 THB - Thai Baht</option>
                     <option value="MYR">🇲🇾 MYR - Malaysian Ringgit</option>
                     <option value="IDR">🇮🇩 IDR - Indonesian Rupiah</option>
                     <option value="PHP">🇵🇭 PHP - Philippine Peso</option>
-                    <option value="VND">🇻🇳 VND - Vietnamese Dong</option>
                     <option value="ILS">🇮🇱 ILS - Israeli Shekel</option>
                     <option value="PLN">🇵🇱 PLN - Polish Zloty</option>
                     <option value="CZK">🇨🇿 CZK - Czech Koruna</option>
@@ -89,15 +93,13 @@
                     <option value="RON">🇷🇴 RON - Romanian Leu</option>
                     <option value="BGN">🇧🇬 BGN - Bulgarian Lev</option>
                     <option value="HRK">🇭🇷 HRK - Croatian Kuna</option>
-                    <option value="ISK">🇮🇸 ISK - Icelandic Krona</option>
                     <option value="UAH">🇺🇦 UAH - Ukrainian Hryvnia</option>
-                    <option value="KZT">🇰🇿 KZT - Kazakhstani Tenge</option>
                 </select>
                 <button id="convert-btn">Convert</button>
             </div>
             <div id="result-display" class="result-display"></div>
             <div class="exchange-rate-info">
-                <p id="exchange-rate">1 KRW = 0.00076 USD</p>
+                <p id="exchange-rate">🇰🇷 1 KRW = 🇺🇸 0.00076 USD</p>
                 <p id="last-updated">Last updated: Just now</p>
             </div>
             <div id="loading-indicator" class="loading-indicator" style="display: none;">
@@ -106,7 +108,14 @@
             </div>
             <div id="error-message" class="error-message"></div>
         </div>
-    </div>
+    </main>
+
+    <footer class="app-footer">
+        <div class="container">
+            <p>&copy; 2023 Travel Companion App</p>
+        </div>
+    </footer>
+    
     <script src="script.js"></script>
 </body>
 </html> 

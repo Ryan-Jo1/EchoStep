@@ -4,12 +4,17 @@ import requests
 import redis
 from datetime import datetime, timedelta
 import os
+from routes_api import routes_api
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
+# Register the routes API blueprint
+app.register_blueprint(routes_api)
+
 # Redis Connection for caching
-redis_client = redis.Redis(host="redis", port=6379, decode_responses=True)
+REDIS_HOST = os.getenv('REDIS_HOST', 'redis')
+redis_client = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
 
 # Free Currency API configuration
 EXCHANGE_RATES_API_KEY = os.getenv('EXCHANGE_RATES_API_KEY')
@@ -116,7 +121,7 @@ def translate():
 
 @app.route('/')
 def home():
-    return {"message": "Travel API is running!"}
+    return {"message": "Travel API is running with currency conversion and walking routes!"}
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

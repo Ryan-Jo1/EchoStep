@@ -1,81 +1,75 @@
-# Travel Currency Converter
+# Travel Companion App
 
-A web application that provides real-time currency conversion using the Free Currency API.
+A comprehensive travel companion application with the following features:
 
-## Features
+## Currency Converter
+- Convert between multiple currencies
+- Real-time exchange rates
+- Cached results for better performance
+- Animated UI with smooth transitions
 
-- Real-time currency conversion
-- Support for multiple currencies
-- Clean and intuitive user interface
-- Caching of exchange rates using Redis
-- Docker containerization for easy deployment
+## Walking Routes
+- Discover walking routes near your current location
+- View routes on an interactive map
+- Filter routes by distance, difficulty, and rating
+- Add your own walking routes by drawing on the map
+- Review and rate existing routes
+- Share your experiences with other travelers
 
 ## Technologies Used
-
-- Backend: Python, Flask
-- Frontend: HTML, CSS, JavaScript
-- Database: Redis (for caching)
-- API: Free Currency API
-- Containerization: Docker, Docker Compose
-
-## Prerequisites
-
-- Docker
-- Docker Compose
-- Free Currency API key
-
-## Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/Ryan-Jo1/travel-api.git
-cd travel-api
-```
-
-2. Create a `.env` file in the root directory with your Free Currency API key:
-```
-EXCHANGE_RATES_API_KEY=your_api_key_here
-```
-
-3. Build and start the containers:
-```bash
-docker-compose up --build
-```
-
-4. Access the application at:
-```
-http://localhost
-```
-
-## API Endpoints
-
-- `GET /` - Health check endpoint
-- `GET /convert` - Convert currency
-  - Parameters:
-    - `from`: Source currency code (e.g., USD)
-    - `to`: Target currency code (e.g., EUR)
-    - `amount`: Amount to convert
+- Frontend: HTML, CSS, JavaScript, Leaflet.js for maps
+- Backend: Flask (Python), Redis for caching
+- APIs: Currency exchange API, Geolocation
 
 ## Project Structure
-
 ```
-travel-api/
-├── backend/
-│   ├── app.py          # Flask application
-│   └── Dockerfile      # Backend container configuration
-├── frontend/
-│   ├── index.html      # Main HTML file
-│   ├── styles.css      # CSS styles
-│   ├── script.js       # Frontend logic
-│   └── nginx.conf      # Nginx configuration
-├── docker-compose.yml  # Container orchestration
-└── README.md          # Project documentation
+├── frontend/              # Frontend files
+│   ├── index.html         # Currency converter page
+│   ├── routes.html        # Walking routes page
+│   ├── styles.css         # Shared styles
+│   ├── routes.css         # Routes-specific styles
+│   ├── script.js          # Currency converter script
+│   └── routes.js          # Walking routes script
+├── backend/               # Backend files
+│   └── app.py             # Main Flask application
+├── routes_api.py          # Routes API endpoints
+└── README.md              # This file
 ```
 
-## Contributing
+## Setup and Running
 
-Feel free to submit issues and enhancement requests!
+### Prerequisites
+- Python 3.7+
+- Redis server
+- Node.js and npm (for development)
+
+### Environment Variables
+- `REDIS_HOST`: Redis server hostname (default: "redis")
+- `EXCHANGE_RATES_API_KEY`: API key for currency exchange rates
+
+### Running the Application
+1. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+
+2. Start the backend:
+   ```
+   python backend/app.py
+   ```
+
+3. Open the application in a web browser:
+   ```
+   http://localhost:5000
+   ```
+
+## Features to Add
+- User authentication and profiles
+- Save favorite routes and currency pairs
+- Offline support
+- Mobile app version
+- Translation services for travelers
+- Weather information for routes
 
 ## License
-
-This project is licensed under the MIT License - see the LICENSE file for details. 
+MIT 

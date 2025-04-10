@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Routes - Find Nearby Walks</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <link rel="stylesheet" href="routes.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="container">
+            <nav class="main-nav">
+                <a href="index.html" class="logo">TravelCompanion</a>
+                <ul class="nav-links">
+                    <li><a href="index.html">Currency Converter</a></li>
+                    <li><a href="routes.html" class="active">Walking Routes</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container routes-main">
+        <section class="routes-hero">
+            <h1>Discover Local Walking Routes</h1>
+            <p>Find popular walks near you or share your own adventures</p>
+            <button id="locate-me" class="primary-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+                </svg>
+                Find Routes Near Me
+            </button>
+        </section>
+
+        <div class="location-status" id="location-status"></div>
+
+        <div class="routes-container">
+            <div id="map-container" class="map-container">
+                <div id="map"></div>
+                <div class="map-overlay" id="map-overlay">
+                    <div class="spinner"></div>
+                    <p>Loading map...</p>
+                </div>
+            </div>
+
+            <div class="routes-sidebar">
+                <div class="routes-filter">
+                    <h3>Filter Routes</h3>
+                    <div class="filter-options">
+                        <label>
+                            <span>Distance:</span>
+                            <select id="distance-filter">
+                                <option value="all">All Distances</option>
+                                <option value="short">Short (< 2km)</option>
+                                <option value="medium">Medium (2-5km)</option>
+                                <option value="long">Long (> 5km)</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Rating:</span>
+                            <select id="rating-filter">
+                                <option value="all">All Ratings</option>
+                                <option value="4">4+ Stars</option>
+                                <option value="3">3+ Stars</option>
+                                <option value="2">2+ Stars</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Difficulty:</span>
+                            <select id="difficulty-filter">
+                                <option value="all">All Difficulties</option>
+                                <option value="easy">Easy</option>
+                                <option value="moderate">Moderate</option>
+                                <option value="hard">Challenging</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="routes-list" id="routes-list">
+                    <div class="routes-loading" id="routes-loading">
+                        <div class="spinner"></div>
+                        <p>Finding nearby routes...</p>
+                    </div>
+                    <!-- Routes will be populated here by JavaScript -->
+                </div>
+
+                <button id="add-route-btn" class="primary-btn full-width">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
+                    </svg>
+                    Add Your Route
+                </button>
+            </div>
+        </div>
+
+        <!-- Route Detail Modal -->
+        <div id="route-detail-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modal-route-title">Route Title</h2>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="route-detail-map" id="detail-map"></div>
+                    <div class="route-info">
+                        <div class="route-stats">
+                            <div class="stat">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+                                </svg>
+                                <span id="route-distance">0 km</span>
+                            </div>
+                            <div class="stat">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
+                                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
+                                </svg>
+                                <span id="route-duration">0 min</span>
+                            </div>
+                            <div class="stat">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828l.645-1.937zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387A1.734 1.734 0 0 0 4.593 5.69l-.387 1.162a.217.217 0 0 1-.412 0L3.407 5.69A1.734 1.734 0 0 0 2.31 4.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387A1.734 1.734 0 0 0 3.407 2.31l.387-1.162zM10.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.156 1.156 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.156 1.156 0 0 0-.732-.732L9.1 2.137a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732L10.863.1z"/>
+                                </svg>
+                                <span id="route-difficulty">Easy</span>
+                            </div>
+                        </div>
+                        <div class="route-rating" id="route-rating">
+                            <!-- Rating stars will be added here -->
+                        </div>
+                        <p id="route-description"></p>
+                        <div class="route-author">
+                            <span>Created by:</span>
+                            <span id="route-author-name">User Name</span>
+                        </div>
+                        <div class="route-reviews" id="route-reviews">
+                            <h3>Reviews</h3>
+                            <div class="reviews-list" id="reviews-list">
+                                <!-- Reviews will be populated here -->
+                            </div>
+                            <div class="add-review">
+                                <h4>Add Your Review</h4>
+                                <div class="rating-select" id="rating-select">
+                                    <span data-rating="1">&#9733;</span>
+                                    <span data-rating="2">&#9733;</span>
+                                    <span data-rating="3">&#9733;</span>
+                                    <span data-rating="4">&#9733;</span>
+                                    <span data-rating="5">&#9733;</span>
+                                </div>
+                                <textarea id="review-text" placeholder="Share your experience..."></textarea>
+                                <button id="submit-review" class="primary-btn">Submit Review</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Route Modal -->
+        <div id="add-route-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Add New Walking Route</h2>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="add-route-form">
+                        <div class="form-group">
+                            <label for="route-title">Route Title</label>
+                            <input type="text" id="route-title" placeholder="Enter a descriptive title">
+                        </div>
+                        <div class="form-group">
+                            <label for="route-desc">Description</label>
+                            <textarea id="route-desc" placeholder="Describe the walking route, points of interest, etc."></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group half">
+                                <label for="route-difficulty-input">Difficulty</label>
+                                <select id="route-difficulty-input">
+                                    <option value="easy">Easy</option>
+                                    <option value="moderate">Moderate</option>
+                                    <option value="hard">Challenging</option>
+                                </select>
+                            </div>
+                            <div class="form-group half">
+                                <label for="route-duration-input">Estimated Duration (minutes)</label>
+                                <input type="number" id="route-duration-input" min="5" placeholder="Duration in minutes">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Draw Route on Map</label>
+                            <div class="create-route-map" id="create-route-map"></div>
+                            <div class="map-controls">
+                                <button id="draw-route" class="secondary-btn">Start Drawing</button>
+                                <button id="clear-route" class="secondary-btn">Clear</button>
+                            </div>
+                            <p class="hint">Click on the map to add points to your route. Double-click to finish.</p>
+                        </div>
+                        <button id="submit-route" class="primary-btn full-width">Submit Route</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <div class="container">
+            <p>&copy; 2023 Travel Companion App</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="routes.js"></script>
+</body>
+</html> 
