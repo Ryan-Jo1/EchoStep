@@ -9,6 +9,7 @@
 6. [Data Flow](#data-flow)
 7. [Deployment Guide](#deployment-guide)
 8. [Troubleshooting](#troubleshooting)
+9. [Recent Changes and Improvements](#recent-changes-and-improvements)
 
 ## Project Overview
 
@@ -17,7 +18,7 @@ The Travel Currency Converter is a web application that provides real-time curre
 **Key Features:**
 - Real-time currency conversion between multiple currencies
 - Caching mechanism to reduce API calls
-- Currency swap functionality
+- Currency swap functionality with visual animation
 - Docker containerization
 - Responsive UI with flag icons for currencies
 
@@ -30,9 +31,9 @@ The application follows a three-tier architecture:
 3. **Cache Tier**: Redis for storing exchange rates
 
 **Container Structure:**
-- `travel_frontend`: Nginx web server serving the frontend files
-- `travel_flask`: Python Flask application providing the backend API
-- `travel_redis`: Redis instance for caching exchange rates
+- `travel-api-nginx-1`: Nginx web server serving the frontend files and proxying API requests
+- `travel-api-backend-1`: Python Flask application providing the backend API
+- `travel-api-redis-1`: Redis instance for caching exchange rates
 
 ## Component Breakdown
 
@@ -42,16 +43,19 @@ The frontend consists of static files served by Nginx:
 
 #### HTML (`frontend/index.html`)
 - Main structure of the application
-- Currency selection dropdowns
+- Currency selection dropdowns with flag emojis
 - Amount input field
 - Convert and swap buttons
 - Results display area
+- Loading indicator and error message container
 
 #### CSS (`frontend/styles.css`)
 - Styling for all UI components
 - Responsive design
-- Flag icons integration via flag-icons library
-- Loading and error states
+- Exchange rate display
+- Loading animation
+- Swap button effects
+- Error message styling
 
 #### JavaScript (`frontend/script.js`)
 - API communication with the backend
@@ -59,11 +63,13 @@ The frontend consists of static files served by Nginx:
 - Currency conversion logic
 - Dynamic UI updates
 - Error handling
+- Swap currency functionality
 
 #### Nginx Configuration (`frontend/nginx.conf`)
 - Routes configuration
 - Proxy setup to the Flask backend
 - Static file serving
+- Cache control headers
 
 ### Backend
 
@@ -72,11 +78,13 @@ The backend is a Python Flask application:
 #### Application Server (`backend/app.py`)
 - Flask application setup
 - API endpoint definitions:
-  - `/`: Health check endpoint
-  - `/exchange-rate`: Get exchange rate between currencies
-  - `/convert`: Convert amount between currencies
+  - `/api/`: Health check endpoint
+  - `/api/exchange-rate`: Get exchange rate between currencies
+  - `/api/convert`: Convert amount between currencies
+  - `/api/debug`: Diagnostic endpoint for testing
 - Redis integration for caching
 - Free Currency API integration
+- CORS support for cross-origin requests
 
 #### Requirements (`backend/requirements.txt`)
 - Python package dependencies
@@ -102,87 +110,71 @@ The Docker setup orchestrates three containers that work together:
 ### Docker Compose (`docker-compose.yml`)
 
 ```yaml
-services:
-  redis:
-    image: redis:latest
-    container_name: travel_redis
-    restart: always
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - app-network
+version: '3'
 
-  flask:
-    build: 
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: travel_flask
-    restart: always
+services:
+  backend:
+    build: ./backend
     ports:
       - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - ./routes_api.py:/app/routes_api.py
+    environment:
+      - REDIS_HOST=redis
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
     depends_on:
       - redis
-    environment:
-      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
-      - FLASK_ENV=development
-      - REDIS_HOST=travel_redis
-    networks:
-      - app-network
+    restart: always
 
-  frontend:
+  nginx:
     image: nginx:alpine
-    container_name: travel_frontend
     ports:
       - "80:80"
     volumes:
       - ./frontend:/usr/share/nginx/html
       - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
-      - flask
-    networks:
-      - app-network
+      - backend
+    restart: always
 
-networks:
-  app-network:
-    driver: bridge
-
-volumes:
-  redis_data:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    restart: always
 ```
 
 ### Container Details
 
-1. **Redis Container (`travel_redis`)**
-   - Uses the latest Redis image
+1. **Redis Container (`travel-api-redis-1`)**
+   - Uses the Redis Alpine image
    - Exposes port 6379
-   - Persists data using a Docker volume
-   - Connected to the app-network
+   - Connected to the default network
 
-2. **Flask Container (`travel_flask`)**
+2. **Backend Container (`travel-api-backend-1`)**
    - Built from the Dockerfile in the backend directory
    - Exposes port 5000
+   - Mounts the backend directory and routes_api.py file
    - Depends on the Redis container
    - Receives environment variables:
      - `EXCHANGE_RATES_API_KEY`: API key from .env file
-     - `FLASK_ENV`: Development environment
-     - `REDIS_HOST`: Points to the Redis container
-   - Connected to the app-network
+     - `REDIS_HOST`: Points to the Redis service
+   - Connected to the default network
 
-3. **Frontend Container (`travel_frontend`)**
+3. **Nginx Container (`travel-api-nginx-1`)**
    - Uses the Nginx Alpine image
    - Exposes port 80
    - Mounts the frontend directory and Nginx configuration
-   - Depends on the Flask container
-   - Connected to the app-network
+   - Depends on the Backend container
+   - Connected to the default network
 
 ### Networking
 
-- All containers are connected to the `app-network` bridge network
-- The frontend container can access the Flask container
-- The Flask container can access the Redis container
-- Users access the application through port 80 (frontend)
+- All containers are connected to the default network
+- The nginx container can access the backend container
+- The backend container can access the Redis container
+- Users access the application through port 80 (nginx)
 
 ## API Integration
 
@@ -199,12 +191,12 @@ The application integrates with the Free Currency API (https://freecurrencyapi.c
 
 The Flask backend exposes these endpoints:
 
-1. **`/`**
+1. **`/api/`**
    - Method: GET
    - Purpose: Health check
-   - Response: `{"message": "Travel API is running!"}`
+   - Response: `{"message": "Travel API is running with currency conversion and walking routes!"}`
 
-2. **`/exchange-rate`**
+2. **`/api/exchange-rate`**
    - Method: GET
    - Parameters:
      - `from`: Source currency code (e.g., USD)
@@ -219,7 +211,7 @@ The Flask backend exposes these endpoints:
      }
      ```
 
-3. **`/convert`**
+3. **`/api/convert`**
    - Method: GET
    - Parameters:
      - `from`: Source currency code (e.g., USD)
@@ -234,6 +226,18 @@ The Flask backend exposes these endpoints:
        "converted_amount": 91.03,
        "rate": 0.91,
        "timestamp": "2023-04-09T18:30:14.176532"
+     }
+     ```
+
+4. **`/api/debug`**
+   - Method: GET
+   - Purpose: Testing API functionality
+   - Response:
+     ```json
+     {
+       "status": "ok",
+       "message": "API is working correctly",
+       "timestamp": "2023-04-09T18:35:22.123456"
      }
      ```
 
@@ -301,7 +305,7 @@ For production deployment:
 
 1. Update the `docker-compose.yml` file:
    - Remove port mapping for Redis
-   - Set `FLASK_ENV=production`
+   - Set up persistent volumes
    - Configure proper volume paths
 
 2. Use HTTPS with a proper domain:
@@ -334,28 +338,50 @@ For production deployment:
 4. **Docker Network Issues**
    - **Symptom**: Containers can't communicate
    - **Solution**: Check network configuration
-   - **Check**: `docker network inspect travel-api_app-network`
+   - **Check**: `docker network inspect travel-api_default`
 
-5. **Flag Icons Not Showing**
-   - **Symptom**: Currency flags don't appear
-   - **Solution**: Check internet connectivity for CDN access
-   - **Check**: Browser network tab for flag-icons CSS loading
+5. **JSON Parsing Errors**
+   - **Symptom**: "Unexpected token '<', "<!DOCTYPE "... is not valid JSON"
+   - **Solution**: Ensure the API path is correct and routes include the '/api/' prefix
+   - **Check**: Nginx configuration and API routes in the Flask application
 
 ### Debugging Commands
 
 ```bash
 # Check container logs
-docker-compose logs flask
-docker-compose logs redis
-docker-compose logs frontend
+docker logs travel-api-backend-1
+docker logs travel-api-redis-1
+docker logs travel-api-nginx-1
 
 # Enter container shell
-docker-compose exec flask bash
-docker-compose exec redis redis-cli
+docker exec -it travel-api-backend-1 bash
+docker exec -it travel-api-redis-1 redis-cli
 
-# Test Redis connectivity from Flask container
-docker-compose exec flask python -c "import redis; r = redis.Redis(host='travel_redis', port=6379); print(r.ping())"
+# Test Redis connectivity from backend container
+docker exec travel-api-backend-1 python -c "import redis; r = redis.Redis(host='redis', port=6379); print(r.ping())"
 
 # Test API endpoint
-curl http://localhost:5000/exchange-rate?from=USD&to=EUR
-``` 
+curl http://localhost/api/exchange-rate?from=USD&to=EUR
+curl http://localhost/api/convert?from=USD&to=EUR&amount=100
+```
+
+## Recent Changes and Improvements
+
+### Nginx Configuration Update
+- Modified the proxy_pass directive to preserve the `/api/` path prefix when forwarding requests to the backend
+- Added cache control headers to prevent browser caching issues
+- Improved content-type handling for JSON responses
+
+### Backend Service Updates
+- Updated route definitions to consistently use the `/api/` prefix
+- Added a diagnostic `/api/debug` endpoint for troubleshooting
+- Fixed dependency conflicts in requirements.txt (Werkzeug version)
+- Added improved error handling and reporting
+
+### Frontend Improvements
+- Added a currency swap button with animation effects
+- Enhanced error handling with detailed error messages
+- Improved loading state indicators
+- Fixed JSON parsing issues by ensuring consistent API paths
+
+These improvements have resulted in a more stable and user-friendly application with better error handling and diagnostic capabilities. 
