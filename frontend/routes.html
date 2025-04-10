@@ -99,7 +99,6 @@
                 <ul class="nav-links">
                     <li><a href="index.html">Currency Converter</a></li>
                     <li><a href="routes.html" class="active">Walking Routes</a></li>
-                    <li><a href="auth.html">Login / Register</a></li>
                 </ul>
                 <div id="auth-container">
                     <!-- Will be populated by JavaScript -->
@@ -278,11 +277,15 @@
                         <div class="form-group">
                             <label>Draw Route on Map</label>
                             <div class="create-route-map" id="create-route-map"></div>
+                            <div id="drawing-status" class="drawing-status">
+                                Click "Start Drawing" to begin creating your route.
+                            </div>
                             <div class="map-controls">
                                 <button id="draw-route" class="secondary-btn">Start Drawing</button>
+                                <button id="finish-drawing" class="secondary-btn" disabled>Finish Drawing</button>
                                 <button id="clear-route" class="secondary-btn">Clear</button>
                             </div>
-                            <p class="hint">Click on the map to add points to your route. Double-click to finish.</p>
+                            <p class="hint">Click on the map to add points. Use "Finish Drawing" when you're done.</p>
                         </div>
                         <button id="submit-route" class="primary-btn full-width">Submit Route</button>
                     </div>
