@@ -248,12 +248,46 @@
 
 .route-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border-color: #3498db;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    border-color: #cbd5e0;
+}
+
+/* User's routes styling */
+.route-card.user-route {
+    border-left: 3px solid #3498db;
+    background-color: rgba(52, 152, 219, 0.05);
+}
+
+.route-card.user-route:hover {
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+.route-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.delete-route-btn {
+    background: none;
+    border: none;
+    color: #e74c3c;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+}
+
+.delete-route-btn:hover {
+    opacity: 1;
+    background-color: rgba(231, 76, 60, 0.1);
 }
 
 .route-card h4 {
-    margin-bottom: 8px;
+    font-size: 1.1rem;
+    margin-bottom: 10px;
     color: #2c3e50;
 }
 

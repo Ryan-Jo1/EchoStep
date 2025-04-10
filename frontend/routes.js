@@ -83,6 +83,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('rating-filter').addEventListener('change', applyFilters);
     document.getElementById('difficulty-filter').addEventListener('change', applyFilters);
     
+    // Route type filter (all/user routes)
+    document.getElementById('route-type-filter').addEventListener('change', applyFilters);
+    
     // Add route form controls
     document.getElementById('draw-route').addEventListener('click', startDrawingRoute);
     document.getElementById('finish-drawing').addEventListener('click', finishDrawingRoute);
@@ -119,6 +122,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     });
+    
+    // Load routes from localStorage when the app starts
+    loadRoutesFromLocalStorage();
+    
+    // Initially display all routes if we have some loaded
+    if (routesData.length > 0) {
+        displayRoutes(routesData);
+        addRoutesToMap(routesData);
+    }
 });
 
 // Map initialization
@@ -222,73 +234,133 @@ function initCreateRouteMap(center) {
     return createMap;
 }
 
-// Get user's location
+// Get user's location and find nearby routes
 function getUserLocation() {
-    locationStatus.innerHTML = 'Requesting your location...';
+    // Update status
+    locationStatus.innerHTML = 'Finding your location...';
     locationStatus.className = 'location-status warning';
     
-    if (!navigator.geolocation) {
-        locationStatus.innerHTML = 'Geolocation is not supported by your browser';
-        locationStatus.className = 'location-status error';
-        return;
-    }
+    // Show map loading state
+    mapOverlay.style.display = 'flex';
     
-    navigator.geolocation.getCurrentPosition(
-        // Success
-        position => {
-            const { latitude, longitude } = position.coords;
-            userLocation = [latitude, longitude];
-            
-            locationStatus.innerHTML = 'Location found! Showing walking routes near you.';
-            locationStatus.className = 'location-status success';
-            
-            // Center map on user location
-            if (map) {
+    // Get user-created routes to preserve them
+    const currentUser = getCurrentUser();
+    const userCreatedRoutes = currentUser ? 
+        routesData.filter(route => route.author === currentUser.name) : [];
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            // Success callback
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                userLocation = [latitude, longitude];
+                
+                // Update map
                 map.setView(userLocation, 14);
-                
-                // Add user marker
-                const userIcon = L.divIcon({
-                    html: '<div style="background-color:#3498db;width:12px;height:12px;border-radius:50%;border:2px solid white;"></div>',
-                    className: 'user-marker',
-                    iconSize: [16, 16]
-                });
-                
-                L.marker(userLocation, { icon: userIcon }).addTo(map)
+                L.marker(userLocation).addTo(map)
                     .bindPopup('You are here')
                     .openPopup();
-            } else {
-                initMap(userLocation);
+                
+                // Remove map loading overlay
+                mapOverlay.style.display = 'none';
+                
+                // Update status
+                locationStatus.innerHTML = 'Location found! Finding routes near you...';
+                locationStatus.className = 'location-status info';
+                
+                // Fetch nearby routes
+                fetchNearbyRoutes(latitude, longitude)
+                    .then(() => {
+                        // Once routes are fetched, add back user-created routes if they aren't already included
+                        if (userCreatedRoutes.length > 0) {
+                            // Add user routes that aren't already in the data
+                            userCreatedRoutes.forEach(userRoute => {
+                                if (!routesData.some(r => r.id === userRoute.id)) {
+                                    routesData.push(userRoute);
+                                }
+                            });
+                            
+                            // Save the combined routes
+                            saveRoutesToLocalStorage();
+                            
+                            // Update display
+                            displayRoutes(routesData);
+                            addRoutesToMap(routesData);
+                        }
+                    });
+            },
+            // Error callback
+            (error) => {
+                console.error('Error getting location:', error);
+                
+                mapOverlay.style.display = 'none';
+                
+                // Handle errors
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        locationStatus.innerHTML = 'Location access denied. Please enable location services and refresh the page.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        locationStatus.innerHTML = 'Location information is unavailable. Using a default location.';
+                        break;
+                    case error.TIMEOUT:
+                        locationStatus.innerHTML = 'Location request timed out. Using a default location.';
+                        break;
+                    default:
+                        locationStatus.innerHTML = 'An unknown error occurred. Using a default location.';
+                }
+                locationStatus.className = 'location-status error';
+                
+                // Use a default location (e.g., center of the city)
+                userLocation = [48.856614, 2.3522219]; // Paris as default
+                map.setView(userLocation, 14);
+                
+                // Try to load routes from localStorage first
+                const routesLoaded = loadRoutesFromLocalStorage();
+                
+                if (routesLoaded && routesData.length > 0) {
+                    // Filter by a larger radius since this is a fallback
+                    const nearbyRoutes = filterRoutesByLocation(routesData, userLocation[0], userLocation[1], 20); // 20km radius
+                    displayRoutes(nearbyRoutes);
+                    addRoutesToMap(nearbyRoutes);
+                } else {
+                    // Generate mock routes
+                    const mockRoutes = generateMockRoutes(userLocation[0], userLocation[1]);
+                    routesData = mockRoutes;
+                    displayRoutes(routesData);
+                    addRoutesToMap(routesData);
+                    
+                    // Save generated routes
+                    saveRoutesToLocalStorage();
+                }
             }
+        );
+    } else {
+        locationStatus.innerHTML = 'Geolocation is not supported by your browser. Using a default location.';
+        locationStatus.className = 'location-status error';
+        
+        mapOverlay.style.display = 'none';
+        
+        // Use a default location
+        userLocation = [48.856614, 2.3522219]; // Paris as default
+        map.setView(userLocation, 14);
+        
+        // Try to load or generate routes
+        const routesLoaded = loadRoutesFromLocalStorage();
+        
+        if (routesLoaded && routesData.length > 0) {
+            displayRoutes(routesData);
+            addRoutesToMap(routesData);
+        } else {
+            const mockRoutes = generateMockRoutes(userLocation[0], userLocation[1]);
+            routesData = mockRoutes;
+            displayRoutes(routesData);
+            addRoutesToMap(routesData);
             
-            // Load routes near the user
-            fetchNearbyRoutes(latitude, longitude);
-        },
-        // Error
-        error => {
-            console.error('Error getting location:', error);
-            let errorMessage = 'Unable to determine your location.';
-            
-            switch (error.code) {
-                case 1: // PERMISSION_DENIED
-                    errorMessage = 'Location permission denied. Please enable location services to find routes near you.';
-                    break;
-                case 2: // POSITION_UNAVAILABLE
-                    errorMessage = 'Location information is unavailable. Please try again later.';
-                    break;
-                case 3: // TIMEOUT
-                    errorMessage = 'Location request timed out. Please try again.';
-                    break;
-            }
-            
-            locationStatus.innerHTML = errorMessage;
-            locationStatus.className = 'location-status error';
-            
-            // Initialize map with default location anyway
-            if (!map) {
-                initMap();
-            }
+            // Save generated routes
+            saveRoutesToLocalStorage();
         }
-    );
+    }
 }
 
 // Fetch routes near the user
@@ -302,7 +374,27 @@ async function fetchNearbyRoutes(lat, lng) {
         }
         
         const data = await response.json();
-        routesData = data;
+        
+        // Store existing routes data to preserve reviews
+        const existingRoutes = [...routesData];
+        
+        // Update routes with new data, but preserve existing reviews
+        routesData = data.map(newRoute => {
+            // Check if we already have this route in our existing data
+            const existingRoute = existingRoutes.find(r => r.id === newRoute.id);
+            if (existingRoute && existingRoute.reviews && existingRoute.reviews.length > 0) {
+                // Preserve the existing reviews and rating
+                newRoute.reviews = existingRoute.reviews;
+                
+                // Recalculate the average rating based on reviews
+                if (newRoute.reviews.length > 0) {
+                    const avgRating = (newRoute.reviews.reduce((sum, r) => sum + r.rating, 0) / newRoute.reviews.length).toFixed(1);
+                    newRoute.rating = parseFloat(avgRating);
+                }
+            }
+            return newRoute;
+        });
+        
         displayRoutes(routesData);
         addRoutesToMap(routesData);
         
@@ -352,7 +444,8 @@ async function fetchNearbyRoutes(lat, lng) {
 
 // Filter routes by proximity to a location
 function filterRoutesByLocation(routes, lat, lng, radiusKm) {
-    return routes.filter(route => {
+    // Create a new array with cloned routes to avoid reference issues
+    const filteredRoutes = routes.filter(route => {
         // Use first point of route path for distance calculation
         if (route.path && route.path.length > 0) {
             const routeLat = route.path[0][0];
@@ -362,6 +455,8 @@ function filterRoutesByLocation(routes, lat, lng, radiusKm) {
         }
         return false;
     });
+    
+    return filteredRoutes;
 }
 
 // Function to calculate distance between two points in km using the Haversine formula
@@ -548,13 +643,33 @@ function displayRoutes(routes) {
     
     let routesHTML = '';
     
+    // Get current user for checking if route belongs to user
+    const currentUser = getCurrentUser();
+    const currentUsername = currentUser ? currentUser.name : null;
+    
     routes.forEach(route => {
         // Generate star rating HTML
         const ratingStars = generateStarRating(route.rating);
         
+        // Check if this route belongs to the current user
+        const isUserRoute = currentUsername && route.author === currentUsername;
+        
+        // Add user route class and delete button if it's the user's route
+        const userRouteClass = isUserRoute ? 'user-route' : '';
+        const deleteButton = isUserRoute ? 
+            `<button class="delete-route-btn" data-route-id="${route.id}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                    <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                </svg>
+            </button>` : '';
+        
         routesHTML += `
-            <div class="route-card" data-route-id="${route.id}">
-                <h4>${route.title}</h4>
+            <div class="route-card ${userRouteClass}" data-route-id="${route.id}">
+                <div class="route-card-header">
+                    <h4>${route.title}</h4>
+                    ${deleteButton}
+                </div>
                 <div class="route-card-stats">
                     <div class="stat">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
@@ -578,7 +693,7 @@ function displayRoutes(routes) {
                 </div>
                 <div class="route-card-rating">
                     ${ratingStars}
-                    <span>(${route.reviews.length})</span>
+                    <span>(${route.reviews ? route.reviews.length : 0})</span>
                 </div>
                 <div class="route-card-footer">
                     <span>By ${route.author}</span>
@@ -592,12 +707,26 @@ function displayRoutes(routes) {
     
     // Add click event listeners to the route cards
     document.querySelectorAll('.route-card').forEach(card => {
-        card.addEventListener('click', () => {
+        card.addEventListener('click', (e) => {
+            // Don't open route details if clicking on delete button
+            if (e.target.closest('.delete-route-btn')) {
+                return;
+            }
+            
             const routeId = parseInt(card.dataset.routeId);
             const route = routesData.find(r => r.id === routeId);
             if (route) {
                 showRouteDetails(route);
             }
+        });
+    });
+    
+    // Add delete button event listeners
+    document.querySelectorAll('.delete-route-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent route card click
+            const routeId = parseInt(button.dataset.routeId);
+            deleteRoute(routeId);
         });
     });
 }
@@ -1210,6 +1339,9 @@ function submitReview() {
             }
         }, 3000);
         
+        // Save changes to localStorage
+        saveRoutesToLocalStorage();
+        
         // Update the list of routes to reflect the new rating
         displayRoutes(routesData);
     }
@@ -1219,11 +1351,54 @@ function submitReview() {
     document.getElementById('submit-review').textContent = 'Submit Review';
 }
 
+// Delete a route
+function deleteRoute(routeId) {
+    if (!confirm('Are you sure you want to delete this route?')) {
+        return;
+    }
+    
+    // Find the route index
+    const routeIndex = routesData.findIndex(r => r.id === routeId);
+    
+    if (routeIndex === -1) {
+        alert('Route not found.');
+        return;
+    }
+    
+    // Check if the route belongs to the current user
+    const currentUser = getCurrentUser();
+    if (!currentUser || routesData[routeIndex].author !== currentUser.name) {
+        alert('You can only delete your own routes.');
+        return;
+    }
+    
+    // Remove the route from the array
+    routesData.splice(routeIndex, 1);
+    
+    // Save the updated routes to localStorage
+    saveRoutesToLocalStorage();
+    
+    // Refresh the display
+    displayRoutes(routesData);
+    addRoutesToMap(routesData);
+    
+    // Show success message
+    locationStatus.innerHTML = 'Route deleted successfully.';
+    locationStatus.className = 'location-status success';
+    
+    // Clear the message after a few seconds
+    setTimeout(() => {
+        locationStatus.innerHTML = '';
+        locationStatus.className = 'location-status';
+    }, 3000);
+}
+
 // Apply filters to the routes
 function applyFilters() {
     const distanceFilter = document.getElementById('distance-filter').value;
     const ratingFilter = document.getElementById('rating-filter').value;
     const difficultyFilter = document.getElementById('difficulty-filter').value;
+    const routeTypeFilter = document.getElementById('route-type-filter').value;
     
     // Show loading state
     routesLoading.style.display = 'flex';
@@ -1245,51 +1420,121 @@ function applyFilters() {
         query = query.slice(0, -1);
     }
     
-    // Fetch filtered routes
-    fetch(query)
-        .then(response => {
-            if (!response.ok) throw new Error('Filter request failed');
-            return response.json();
-        })
-        .then(data => {
-            routesData = data;
-            displayRoutes(routesData);
-            addRoutesToMap(routesData);
-        })
-        .catch(error => {
-            console.error('Error applying filters:', error);
-            
-            // If the API call fails, apply filters locally as fallback
-            let filteredRoutes = [...routesData];
-            
-            // Apply filters locally (same logic as in our backend)
-            if (distanceFilter !== 'all') {
-                switch (distanceFilter) {
-                    case 'short':
-                        filteredRoutes = filteredRoutes.filter(route => route.distance < 2);
-                        break;
-                    case 'medium':
-                        filteredRoutes = filteredRoutes.filter(route => route.distance >= 2 && route.distance <= 5);
-                        break;
-                    case 'long':
-                        filteredRoutes = filteredRoutes.filter(route => route.distance > 5);
-                        break;
+    // Try to use the API first, but have local fallback ready
+    let useLocalFiltering = true;
+    
+    if (useLocalFiltering) {
+        // Apply filters locally
+        let filteredRoutes = [...routesData];
+        
+        // Filter by distance
+        if (distanceFilter !== 'all') {
+            switch (distanceFilter) {
+                case 'short':
+                    filteredRoutes = filteredRoutes.filter(route => route.distance < 2);
+                    break;
+                case 'medium':
+                    filteredRoutes = filteredRoutes.filter(route => route.distance >= 2 && route.distance <= 5);
+                    break;
+                case 'long':
+                    filteredRoutes = filteredRoutes.filter(route => route.distance > 5);
+                    break;
+            }
+        }
+        
+        // Filter by rating
+        if (ratingFilter !== 'all') {
+            const minRating = parseInt(ratingFilter);
+            filteredRoutes = filteredRoutes.filter(route => route.rating >= minRating);
+        }
+        
+        // Filter by difficulty
+        if (difficultyFilter !== 'all') {
+            filteredRoutes = filteredRoutes.filter(route => route.difficulty === difficultyFilter);
+        }
+        
+        // Filter by route type (all/user routes)
+        if (routeTypeFilter === 'user') {
+            const currentUser = getCurrentUser();
+            if (currentUser) {
+                filteredRoutes = filteredRoutes.filter(route => route.author === currentUser.name);
+            } else {
+                // If not logged in but "my routes" selected, show nothing
+                filteredRoutes = [];
+            }
+        }
+        
+        displayRoutes(filteredRoutes);
+        addRoutesToMap(filteredRoutes);
+        
+        routesLoading.style.display = 'none';
+    }
+    else {
+        // Fetch filtered routes from API
+        fetch(query)
+            .then(response => {
+                if (!response.ok) throw new Error('Filter request failed');
+                return response.json();
+            })
+            .then(data => {
+                // Apply the route type filter (user routes) since API might not support it
+                if (routeTypeFilter === 'user') {
+                    const currentUser = getCurrentUser();
+                    if (currentUser) {
+                        data = data.filter(route => route.author === currentUser.name);
+                    } else {
+                        data = [];
+                    }
                 }
-            }
-            
-            if (ratingFilter !== 'all') {
-                const minRating = parseInt(ratingFilter);
-                filteredRoutes = filteredRoutes.filter(route => route.rating >= minRating);
-            }
-            
-            if (difficultyFilter !== 'all') {
-                filteredRoutes = filteredRoutes.filter(route => route.difficulty === difficultyFilter);
-            }
-            
-            displayRoutes(filteredRoutes);
-            addRoutesToMap(filteredRoutes);
-        })
-        .finally(() => {
-            routesLoading.style.display = 'none';
-        });
+                
+                displayRoutes(data);
+                addRoutesToMap(data);
+            })
+            .catch(error => {
+                console.error('Error applying filters:', error);
+                
+                // If the API call fails, apply filters locally as fallback
+                let filteredRoutes = [...routesData];
+                
+                // Apply filters locally (same logic as in our backend)
+                if (distanceFilter !== 'all') {
+                    switch (distanceFilter) {
+                        case 'short':
+                            filteredRoutes = filteredRoutes.filter(route => route.distance < 2);
+                            break;
+                        case 'medium':
+                            filteredRoutes = filteredRoutes.filter(route => route.distance >= 2 && route.distance <= 5);
+                            break;
+                        case 'long':
+                            filteredRoutes = filteredRoutes.filter(route => route.distance > 5);
+                            break;
+                    }
+                }
+                
+                if (ratingFilter !== 'all') {
+                    const minRating = parseInt(ratingFilter);
+                    filteredRoutes = filteredRoutes.filter(route => route.rating >= minRating);
+                }
+                
+                if (difficultyFilter !== 'all') {
+                    filteredRoutes = filteredRoutes.filter(route => route.difficulty === difficultyFilter);
+                }
+                
+                // Apply route type filter
+                if (routeTypeFilter === 'user') {
+                    const currentUser = getCurrentUser();
+                    if (currentUser) {
+                        filteredRoutes = filteredRoutes.filter(route => route.author === currentUser.name);
+                    } else {
+                        filteredRoutes = [];
+                    }
+                }
+                
+                displayRoutes(filteredRoutes);
+                addRoutesToMap(filteredRoutes);
+            })
+            .finally(() => {
+                routesLoading.style.display = 'none';
+            });
+    }
 } 
