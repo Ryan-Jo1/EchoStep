@@ -586,21 +586,34 @@
     100% { transform: rotate(360deg); }
 }
 
-/* Empty States */
+/* Empty state */
 .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
-    padding: 30px;
-    color: #6c757d;
+    padding: 2rem;
+    color: #718096;
 }
 
 .empty-state svg {
-    width: 50px;
-    height: 50px;
-    margin-bottom: 15px;
-    color: #cbd5e0;
+    color: #a0aec0;
+    margin-bottom: 1rem;
+    width: 64px;
+    height: 64px;
 }
 
 .empty-state p {
+    margin: 0.5rem 0;
+    font-size: 1rem;
+}
+
+.empty-state .empty-state-info {
     font-size: 0.9rem;
-    margin-bottom: 15px;
+    color: #718096;
+    margin-bottom: 1.5rem;
+}
+
+.empty-state button {
+    margin-top: 1rem;
 } 

@@ -164,7 +164,7 @@ def get_random_review_text():
     return random.choice(reviews)
 
 # Initialize sample data
-initialize_sample_routes()
+# initialize_sample_routes()  # Commented out to start with an empty routes list
 
 # API Endpoints
 @routes_api.route('/api/routes/nearby', methods=['GET'])

@@ -126,6 +126,14 @@ function initCreateRouteMap(center) {
         maxZoom: 19
     }).addTo(createMap);
     
+    // Add click event handler for route drawing
+    createMap.on('click', function(e) {
+        if (drawingRoute) {
+            const coords = [e.latlng.lat, e.latlng.lng];
+            addPointToRoute(coords, createMap);
+        }
+    });
+    
     return createMap;
 }
 
@@ -212,21 +220,19 @@ async function fetchNearbyRoutes(lat, lng) {
         routesData = data;
         displayRoutes(routesData);
         addRoutesToMap(routesData);
+        
+        // Update status if no routes are found
+        if (routesData.length === 0) {
+            locationStatus.innerHTML = 'No routes found in this area. Why not add one?';
+            locationStatus.className = 'location-status info';
+        }
+        
         routesLoading.style.display = 'none';
     } catch (error) {
         console.error('Error fetching routes:', error);
         routesLoading.style.display = 'none';
-        
-        // If the API call fails, fallback to the mock data
-        setTimeout(() => {
-            routesData = generateMockRoutes(lat, lng);
-            displayRoutes(routesData);
-            addRoutesToMap(routesData);
-            
-            // Show a warning about using mock data
-            locationStatus.innerHTML = 'Could not connect to routes API, using demo data instead.';
-            locationStatus.className = 'location-status warning';
-        }, 500);
+        locationStatus.innerHTML = 'Error connecting to the routes API. Please try again later.';
+        locationStatus.className = 'location-status error';
     }
 }
 
@@ -389,12 +395,22 @@ function displayRoutes(routes) {
     if (routes.length === 0) {
         routesList.innerHTML = `
             <div class="empty-state">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                 </svg>
                 <p>No routes found in this area.</p>
+                <p class="empty-state-info">Routes are created by users like you! Click the "Add Your Route" button below to create the first route.</p>
+                <button id="empty-add-route-btn" class="primary-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
+                    </svg>
+                    Add Your Route
+                </button>
             </div>
         `;
+        
+        // Add click event for the empty state add button
+        document.getElementById('empty-add-route-btn').addEventListener('click', showAddRouteModal);
         return;
     }
     
@@ -659,14 +675,6 @@ function showAddRouteModal() {
     setTimeout(() => {
         const createMap = initCreateRouteMap(center);
         
-        // Add click handler for drawing
-        createMap.on('click', event => {
-            if (drawingRoute) {
-                const { lat, lng } = event.latlng;
-                addPointToRoute([lat, lng], createMap);
-            }
-        });
-        
         // Create a layer group for the new route
         newRouteLayer = L.layerGroup().addTo(createMap);
         
@@ -686,6 +694,10 @@ function startDrawingRoute() {
     drawingRoute = true;
     document.getElementById('draw-route').innerText = 'Drawing...';
     document.getElementById('draw-route').disabled = true;
+    
+    // Show instructions to user
+    locationStatus.innerHTML = 'Click on the map to add points to your route. Double-click to finish.';
+    locationStatus.className = 'location-status info';
 }
 
 // Add a point to the route being drawn
