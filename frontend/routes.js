@@ -8,6 +8,30 @@ let drawingRoute = false;
 let newRoutePath = [];
 let newRouteLayer = null;
 
+// Local storage keys
+const ROUTES_STORAGE_KEY = 'travelapp_routes';
+
+// Functions for route persistence
+function saveRoutesToLocalStorage() {
+    localStorage.setItem(ROUTES_STORAGE_KEY, JSON.stringify(routesData));
+    console.log('Routes saved to localStorage:', routesData.length);
+}
+
+function loadRoutesFromLocalStorage() {
+    const savedRoutes = localStorage.getItem(ROUTES_STORAGE_KEY);
+    if (savedRoutes) {
+        try {
+            routesData = JSON.parse(savedRoutes);
+            console.log('Routes loaded from localStorage:', routesData.length);
+            return true;
+        } catch (error) {
+            console.error('Error parsing saved routes:', error);
+            return false;
+        }
+    }
+    return false;
+}
+
 // DOM Elements
 const locateBtn = document.getElementById('locate-me');
 const locationStatus = document.getElementById('location-status');
@@ -291,20 +315,72 @@ async function fetchNearbyRoutes(lat, lng) {
             locationStatus.className = 'location-status success';
         }
         
+        // Save to localStorage for persistence
+        saveRoutesToLocalStorage();
+        
         routesLoading.style.display = 'none';
     } catch (error) {
         console.error('Error fetching routes:', error);
         
-        // Set empty routes data instead of showing an error
-        routesData = [];
-        displayRoutes(routesData);
-        addRoutesToMap(routesData);
+        // Try to load routes from localStorage first
+        const routesLoaded = loadRoutesFromLocalStorage();
         
-        locationStatus.innerHTML = 'No routes found. You can be the first to add a route here!';
-        locationStatus.className = 'location-status info';
+        if (routesLoaded && routesData.length > 0) {
+            // Filter routes by proximity to current location if we have routes
+            const nearbyRoutes = filterRoutesByLocation(routesData, lat, lng, 10); // 10km radius
+            displayRoutes(nearbyRoutes);
+            addRoutesToMap(nearbyRoutes);
+            
+            locationStatus.innerHTML = `Found ${nearbyRoutes.length} saved routes near your location.`;
+            locationStatus.className = 'location-status success';
+        } else {
+            // If no saved routes or API fails completely, generate mock routes
+            routesData = generateMockRoutes(lat, lng);
+            displayRoutes(routesData);
+            addRoutesToMap(routesData);
+            
+            locationStatus.innerHTML = 'Using sample routes. You can add your own routes!';
+            locationStatus.className = 'location-status info';
+            
+            // Save generated routes to localStorage
+            saveRoutesToLocalStorage();
+        }
         
         routesLoading.style.display = 'none';
     }
+}
+
+// Filter routes by proximity to a location
+function filterRoutesByLocation(routes, lat, lng, radiusKm) {
+    return routes.filter(route => {
+        // Use first point of route path for distance calculation
+        if (route.path && route.path.length > 0) {
+            const routeLat = route.path[0][0];
+            const routeLng = route.path[0][1];
+            const distance = getDistanceFromLatLonInKm(lat, lng, routeLat, routeLng);
+            return distance <= radiusKm;
+        }
+        return false;
+    });
+}
+
+// Function to calculate distance between two points in km using the Haversine formula
+function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Radius of the earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2)
+    ; 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    const distance = R * c; // Distance in km
+    return distance;
+}
+
+function deg2rad(deg) {
+    return deg * (Math.PI/180);
 }
 
 // Generate mock routes for demo purposes
@@ -363,24 +439,6 @@ function calculatePathDistance(path) {
     }
     
     return Math.round(distance * 10) / 10; // Round to 1 decimal place
-}
-
-// Calculate distance between two points using Haversine formula
-function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-    const R = 6371; // Radius of the earth in km
-    const dLat = deg2rad(lat2 - lat1);
-    const dLon = deg2rad(lon2 - lon1);
-    const a = 
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const d = R * c; // Distance in km
-    return d;
-}
-
-function deg2rad(deg) {
-    return deg * (Math.PI / 180);
 }
 
 // Helper functions for generating mock data
@@ -572,14 +630,23 @@ function generateStarRating(rating) {
 
 // Format date for display
 function formatDate(date) {
+    // Convert string date to Date object if needed
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    
+    // Handle invalid dates
+    if (!(dateObj instanceof Date) || isNaN(dateObj)) {
+        return 'Unknown date';
+    }
+    
     const now = new Date();
-    const diff = Math.floor((now - date) / (1000 * 60 * 60 * 24)); // Difference in days
+    const diff = Math.floor((now - dateObj) / (1000 * 60 * 60 * 24)); // Difference in days
     
     if (diff === 0) return 'Today';
     if (diff === 1) return 'Yesterday';
     if (diff < 7) return `${diff} days ago`;
     
-    return date.toLocaleDateString();
+    // Format the date using toLocaleDateString
+    return dateObj.toLocaleDateString();
 }
 
 // Add routes to the map
@@ -699,7 +766,7 @@ function getCenterPoint(path) {
 function displayReviews(reviews) {
     const reviewsList = document.getElementById('reviews-list');
     
-    if (reviews.length === 0) {
+    if (!reviews || reviews.length === 0) {
         reviewsList.innerHTML = '<p class="empty-reviews">No reviews yet. Be the first to review this route!</p>';
         return;
     }
@@ -707,14 +774,25 @@ function displayReviews(reviews) {
     let reviewsHTML = '';
     
     reviews.forEach(review => {
+        // Ensure review has all required fields with defaults
+        const reviewData = {
+            author: review.author || 'Anonymous',
+            rating: review.rating || 0,
+            text: review.text || 'No comments provided',
+            date: review.date || new Date()
+        };
+        
+        // Format the date safely
+        const formattedDate = formatDate(reviewData.date);
+        
         reviewsHTML += `
             <div class="review-item">
                 <div class="review-header">
-                    <span class="review-author">${review.author}</span>
-                    <span class="review-rating">${'★'.repeat(review.rating)}</span>
+                    <span class="review-author">${reviewData.author}</span>
+                    <span class="review-rating">${'★'.repeat(reviewData.rating)}</span>
                 </div>
-                <p class="review-text">${review.text}</p>
-                <div class="review-date">${formatDate(review.date)}</div>
+                <p class="review-text">${reviewData.text}</p>
+                <div class="review-date">${formattedDate}</div>
             </div>
         `;
     });
@@ -970,27 +1048,55 @@ function submitNewRoute() {
         headers['Authorization'] = `Bearer ${accessToken}`;
     }
     
-    // Instead of trying to hit the API, we'll use a client-side approach
-    // Create a simulated route response
-    const mockNewRoute = {
-        id: Math.floor(Math.random() * 10000) + 1000, // Create a unique ID
-        title,
-        description,
-        path: newRoutePath,
-        distance,
-        duration,
-        difficulty,
-        rating: 0,
-        author: getCurrentUser()?.name || 'Anonymous User',
-        createdAt: new Date(),
-        reviews: []
-    };
-    
+    // Try to submit to the API first
+    fetch('/api/routes', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(newRoute)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to submit route');
+        }
+        return response.json();
+    })
+    .then(savedRoute => {
+        // Use the API response for success path
+        handleRouteSubmissionSuccess(savedRoute);
+    })
+    .catch(error => {
+        console.error('Error submitting route to API:', error);
+        
+        // Client-side fallback: Create a simulated route
+        const mockNewRoute = {
+            id: Math.floor(Math.random() * 10000) + 1000, // Create a unique ID
+            title,
+            description,
+            path: newRoutePath,
+            distance,
+            duration,
+            difficulty,
+            rating: 0,
+            author: getCurrentUser()?.name || 'Anonymous User',
+            createdAt: new Date(),
+            reviews: []
+        };
+        
+        // Process the new route locally
+        handleRouteSubmissionSuccess(mockNewRoute);
+    });
+}
+
+// Handle successful route submission (whether from API or local)
+function handleRouteSubmissionSuccess(newRoute) {
     // Close the modal first
     addRouteModal.classList.remove('show');
     
     // Add the new route to the data
-    routesData.push(mockNewRoute);
+    routesData.push(newRoute);
+    
+    // Save to localStorage
+    saveRoutesToLocalStorage();
     
     // Update the display
     displayRoutes(routesData);
@@ -1005,7 +1111,7 @@ function submitNewRoute() {
         addRoutesToMap(routesData);
         
         // Zoom to the new route
-        const newRouteBounds = L.polyline(newRoutePath).getBounds();
+        const newRouteBounds = L.polyline(newRoute.path).getBounds();
         map.fitBounds(newRouteBounds, { padding: [50, 50] });
         
         // Show a success message
@@ -1045,17 +1151,14 @@ function submitReview() {
     
     // Check if user is logged in
     const currentUser = getCurrentUser();
-    if (!currentUser) {
-        alert('Please log in to leave a review.');
-        return;
-    }
+    const authorName = currentUser ? currentUser.name : 'Anonymous User';
     
     // Create a new review object with current date and user information
     const newReview = {
         id: Math.floor(Math.random() * 10000) + 1000, // Generate random ID
         rating,
         text: reviewText,
-        author: currentUser.name,
+        author: authorName,
         date: new Date().toISOString()
     };
     
