@@ -7,6 +7,7 @@ A comprehensive travel companion application with the following features:
 - Real-time exchange rates
 - Cached results for better performance
 - Animated UI with smooth transitions
+- Currency swap functionality with visual feedback
 
 ## Walking Routes
 - Discover walking routes near your current location
@@ -19,7 +20,9 @@ A comprehensive travel companion application with the following features:
 ## Technologies Used
 - Frontend: HTML, CSS, JavaScript, Leaflet.js for maps
 - Backend: Flask (Python), Redis for caching
-- APIs: Currency exchange API, Geolocation
+- APIs: Free Currency API for exchange rates, Geolocation for mapping
+- Docker: Containerized deployment with Docker Compose
+- Nginx: Reverse proxy for the frontend and API
 
 ## Project Structure
 ```
@@ -29,39 +32,57 @@ A comprehensive travel companion application with the following features:
 │   ├── styles.css         # Shared styles
 │   ├── routes.css         # Routes-specific styles
 │   ├── script.js          # Currency converter script
-│   └── routes.js          # Walking routes script
+│   ├── routes.js          # Walking routes script
+│   └── nginx.conf         # Nginx configuration
 ├── backend/               # Backend files
-│   └── app.py             # Main Flask application
+│   ├── app.py             # Main Flask application
+│   ├── requirements.txt   # Python dependencies
+│   └── Dockerfile         # Backend container definition
 ├── routes_api.py          # Routes API endpoints
+├── docker-compose.yml     # Docker Compose configuration
 └── README.md              # This file
 ```
 
 ## Setup and Running
 
 ### Prerequisites
-- Python 3.7+
-- Redis server
-- Node.js and npm (for development)
+- Docker and Docker Compose
+- Free Currency API key (https://freecurrencyapi.com/)
 
 ### Environment Variables
-- `REDIS_HOST`: Redis server hostname (default: "redis")
 - `EXCHANGE_RATES_API_KEY`: API key for currency exchange rates
 
-### Running the Application
-1. Install dependencies:
+### Running with Docker (Recommended)
+1. Create a `.env` file in the root directory with your API key:
    ```
+   EXCHANGE_RATES_API_KEY=your_api_key_here
+   ```
+
+2. Build and start the containers:
+   ```
+   docker-compose up --build
+   ```
+
+3. Access the application in a web browser:
+   ```
+   http://localhost
+   ```
+
+### Running Without Docker (Development)
+1. Install backend dependencies:
+   ```
+   cd backend
    pip install -r requirements.txt
    ```
 
-2. Start the backend:
+2. Set up Redis locally and start the Flask application:
    ```
-   python backend/app.py
+   export EXCHANGE_RATES_API_KEY=your_api_key_here
+   export REDIS_HOST=localhost
+   python app.py
    ```
 
-3. Open the application in a web browser:
-   ```
-   http://localhost:5000
-   ```
+3. Serve the frontend files using a local web server.
 
 ## Features to Add
 - User authentication and profiles
@@ -70,6 +91,11 @@ A comprehensive travel companion application with the following features:
 - Mobile app version
 - Translation services for travelers
 - Weather information for routes
+
+## Troubleshooting
+- If the frontend shows "Unexpected token '<', "<!DOCTYPE "... is not valid JSON" error, try clearing your browser cache.
+- Ensure the correct backend service name is used in nginx.conf (currently "backend:5000").
+- Check container logs with `docker-compose logs` if you encounter issues.
 
 ## License
 MIT 
