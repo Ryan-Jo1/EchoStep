@@ -7,6 +7,89 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <link rel="stylesheet" href="routes.css">
+    <style>
+        .user-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        .user-menu-btn {
+            display: flex;
+            align-items: center;
+            color: #fff;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0.5rem;
+        }
+
+        .user-menu-btn .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #4a6bea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.5rem;
+            font-weight: bold;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            min-width: 180px;
+            z-index: 10;
+            display: none;
+        }
+
+        .user-dropdown.show {
+            display: block;
+        }
+
+        .user-dropdown-item {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: #333;
+            text-decoration: none;
+            border-bottom: 1px solid #f1f1f1;
+        }
+
+        .user-dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .user-dropdown-item.logout {
+            color: #dc3545;
+        }
+
+        .auth-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .auth-links a {
+            color: #fff;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+
+        .auth-links a.login {
+            background-color: transparent;
+            border: 1px solid #fff;
+        }
+
+        .auth-links a.register {
+            background-color: #4a6bea;
+        }
+    </style>
 </head>
 <body>
     <header class="app-header">
@@ -16,7 +99,11 @@
                 <ul class="nav-links">
                     <li><a href="index.html">Currency Converter</a></li>
                     <li><a href="routes.html" class="active">Walking Routes</a></li>
+                    <li><a href="auth.html">Login / Register</a></li>
                 </ul>
+                <div id="auth-container">
+                    <!-- Will be populated by JavaScript -->
+                </div>
             </nav>
         </div>
     </header>
@@ -213,5 +300,102 @@
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="routes.js"></script>
+    <script>
+        // User authentication functionality
+        
+        // DOM Elements
+        const authContainer = document.getElementById('auth-container');
+        
+        // Get user from localStorage
+        function getCurrentUser() {
+            const userJSON = localStorage.getItem('user');
+            if (!userJSON) return null;
+            
+            try {
+                return JSON.parse(userJSON);
+            } catch (error) {
+                console.error('Error parsing user JSON:', error);
+                return null;
+            }
+        }
+        
+        // Get access token from localStorage
+        function getAccessToken() {
+            return localStorage.getItem('access_token');
+        }
+        
+        // Check if user is logged in
+        function isLoggedIn() {
+            return getAccessToken() && getCurrentUser();
+        }
+        
+        // Render auth container based on login status
+        function renderAuthUI() {
+            if (isLoggedIn()) {
+                const user = getCurrentUser();
+                const initials = user.name.split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .toUpperCase();
+                
+                authContainer.innerHTML = `
+                    <div class="user-menu">
+                        <button class="user-menu-btn" id="user-menu-btn">
+                            <div class="user-avatar">${initials}</div>
+                            <span>${user.name}</span>
+                        </button>
+                        <div class="user-dropdown" id="user-dropdown">
+                            <a href="#" class="user-dropdown-item profile">Profile</a>
+                            <a href="#" class="user-dropdown-item preferences">Preferences</a>
+                            <a href="#" class="user-dropdown-item logout">Logout</a>
+                        </div>
+                    </div>
+                `;
+                
+                // Set up event listeners
+                const userMenuBtn = document.getElementById('user-menu-btn');
+                const userDropdown = document.getElementById('user-dropdown');
+                const logoutLink = document.querySelector('.user-dropdown-item.logout');
+                
+                userMenuBtn.addEventListener('click', () => {
+                    userDropdown.classList.toggle('show');
+                });
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+                        userDropdown.classList.remove('show');
+                    }
+                });
+                
+                // Logout functionality
+                logoutLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    logout();
+                });
+            } else {
+                authContainer.innerHTML = `
+                    <div class="auth-links">
+                        <a href="auth.html" class="login">Login</a>
+                        <a href="auth.html" class="register">Register</a>
+                    </div>
+                `;
+            }
+        }
+        
+        // Logout function
+        function logout() {
+            // Clear local storage
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            
+            // Reload page
+            window.location.reload();
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', renderAuthUI);
+    </script>
 </body>
 </html> 

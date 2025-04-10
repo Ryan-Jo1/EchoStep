@@ -11,6 +11,7 @@ services:
     environment:
       - REDIS_HOST=redis
       - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-jwt-secret-for-travel-api}
     depends_on:
       - redis
     restart: always

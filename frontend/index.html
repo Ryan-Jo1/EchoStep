@@ -5,6 +5,165 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Travel Currency Converter</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .user-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        .user-menu-btn {
+            display: flex;
+            align-items: center;
+            color: #fff;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0.5rem;
+        }
+
+        .user-menu-btn .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #4a6bea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.5rem;
+            font-weight: bold;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            min-width: 180px;
+            z-index: 10;
+            display: none;
+        }
+
+        .user-dropdown.show {
+            display: block;
+        }
+
+        .user-dropdown-item {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: #333;
+            text-decoration: none;
+            border-bottom: 1px solid #f1f1f1;
+        }
+
+        .user-dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .user-dropdown-item.logout {
+            color: #dc3545;
+        }
+
+        .auth-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .auth-links a {
+            color: #fff;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+
+        .auth-links a.login {
+            background-color: transparent;
+            border: 1px solid #fff;
+        }
+
+        .auth-links a.register {
+            background-color: #4a6bea;
+        }
+
+        /* User preferences in converter */
+        .user-preferences {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .preference-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .save-preference-btn {
+            background-color: #4a6bea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .save-preference-btn:hover {
+            background-color: #3a5bd9;
+        }
+
+        .preferences-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .preference-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .preference-item:last-child {
+            border-bottom: none;
+        }
+
+        .preference-item button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .preference-item button:hover {
+            background-color: #c82333;
+        }
+
+        .login-prompt {
+            margin-top: 1rem;
+            text-align: center;
+            padding: 1rem;
+            background-color: #e9ecef;
+            border-radius: 8px;
+        }
+
+        .login-prompt a {
+            color: #4a6bea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
     <header class="app-header">
@@ -15,6 +174,9 @@
                     <li><a href="index.html" class="active">Currency Converter</a></li>
                     <li><a href="routes.html">Walking Routes</a></li>
                 </ul>
+                <div id="auth-container">
+                    <!-- Will be populated by JavaScript -->
+                </div>
             </nav>
         </div>
     </header>
@@ -107,6 +269,11 @@
                 <p>Converting...</p>
             </div>
             <div id="error-message" class="error-message"></div>
+
+            <!-- User Preferences Section -->
+            <div id="user-preferences-container">
+                <!-- Will be populated by JavaScript -->
+            </div>
         </div>
     </main>
 
@@ -117,5 +284,305 @@
     </footer>
     
     <script src="script.js"></script>
+    <script>
+        // User authentication and preferences functionality
+        
+        // DOM Elements
+        const authContainer = document.getElementById('auth-container');
+        const userPreferencesContainer = document.getElementById('user-preferences-container');
+        
+        // API Base URL
+        const AUTH_API_BASE_URL = '/api';
+        
+        // Get user from localStorage
+        function getCurrentUser() {
+            const userJSON = localStorage.getItem('user');
+            if (!userJSON) return null;
+            
+            try {
+                return JSON.parse(userJSON);
+            } catch (error) {
+                console.error('Error parsing user JSON:', error);
+                return null;
+            }
+        }
+        
+        // Get access token from localStorage
+        function getAccessToken() {
+            return localStorage.getItem('access_token');
+        }
+        
+        // Check if user is logged in
+        function isLoggedIn() {
+            return getAccessToken() && getCurrentUser();
+        }
+        
+        // Render auth container based on login status
+        function renderAuthUI() {
+            if (isLoggedIn()) {
+                const user = getCurrentUser();
+                const initials = user.name.split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .toUpperCase();
+                
+                authContainer.innerHTML = `
+                    <div class="user-menu">
+                        <button class="user-menu-btn" id="user-menu-btn">
+                            <div class="user-avatar">${initials}</div>
+                            <span>${user.name}</span>
+                        </button>
+                        <div class="user-dropdown" id="user-dropdown">
+                            <a href="#" class="user-dropdown-item profile">Profile</a>
+                            <a href="#" class="user-dropdown-item preferences">Preferences</a>
+                            <a href="#" class="user-dropdown-item logout">Logout</a>
+                        </div>
+                    </div>
+                `;
+                
+                // Set up event listeners
+                const userMenuBtn = document.getElementById('user-menu-btn');
+                const userDropdown = document.getElementById('user-dropdown');
+                const logoutLink = document.querySelector('.user-dropdown-item.logout');
+                
+                userMenuBtn.addEventListener('click', () => {
+                    userDropdown.classList.toggle('show');
+                });
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+                        userDropdown.classList.remove('show');
+                    }
+                });
+                
+                // Logout functionality
+                logoutLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    logout();
+                });
+            } else {
+                authContainer.innerHTML = `
+                    <div class="auth-links">
+                        <a href="auth.html" class="login">Login</a>
+                        <a href="auth.html" class="register">Register</a>
+                    </div>
+                `;
+            }
+        }
+        
+        // Render user preferences UI
+        function renderUserPreferences() {
+            if (isLoggedIn()) {
+                fetchUserPreferences()
+                    .then(preferences => {
+                        // Get currency preferences
+                        const currencyPrefs = preferences.saved_currency_pairs || [];
+                        
+                        userPreferencesContainer.innerHTML = `
+                            <div class="user-preferences">
+                                <div class="preference-heading">
+                                    <h3>Saved Currency Pairs</h3>
+                                    <button id="save-current-pair" class="save-preference-btn">Save Current Pair</button>
+                                </div>
+                                <ul class="preferences-list" id="preferences-list">
+                                    ${currencyPrefs.length ? 
+                                        currencyPrefs.map((pref, index) => `
+                                            <li class="preference-item">
+                                                <span>${getCurrencyFlag(pref.from)} ${pref.from} to ${getCurrencyFlag(pref.to)} ${pref.to}</span>
+                                                <div>
+                                                    <button data-index="${index}" class="use-pair-btn">Use</button>
+                                                    <button data-index="${index}" class="delete-pair-btn">Delete</button>
+                                                </div>
+                                            </li>
+                                        `).join('') :
+                                        '<li class="preference-item">No saved currency pairs yet</li>'
+                                    }
+                                </ul>
+                            </div>
+                        `;
+                        
+                        // Set up event listeners
+                        const saveCurrentPairBtn = document.getElementById('save-current-pair');
+                        saveCurrentPairBtn.addEventListener('click', saveCurrentPair);
+                        
+                        // Attach event listeners to use/delete buttons
+                        document.querySelectorAll('.use-pair-btn').forEach(btn => {
+                            btn.addEventListener('click', useCurrencyPair);
+                        });
+                        
+                        document.querySelectorAll('.delete-pair-btn').forEach(btn => {
+                            btn.addEventListener('click', deleteCurrencyPair);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching preferences:', error);
+                        userPreferencesContainer.innerHTML = `
+                            <div class="user-preferences">
+                                <h3>Saved Currency Pairs</h3>
+                                <p>Error loading preferences. Please try again later.</p>
+                            </div>
+                        `;
+                    });
+            } else {
+                userPreferencesContainer.innerHTML = `
+                    <div class="login-prompt">
+                        <p>Login to save your favorite currency pairs and preferences</p>
+                        <a href="auth.html">Login or Register</a>
+                    </div>
+                `;
+            }
+        }
+        
+        // Fetch user preferences from API
+        async function fetchUserPreferences() {
+            const token = getAccessToken();
+            if (!token) throw new Error('Not authenticated');
+            
+            try {
+                const response = await fetch(`${AUTH_API_BASE_URL}/users/me/preferences`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch preferences');
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching preferences:', error);
+                return { saved_currency_pairs: [] };
+            }
+        }
+        
+        // Save current currency pair
+        async function saveCurrentPair() {
+            const from = document.getElementById('from-currency').value;
+            const to = document.getElementById('to-currency').value;
+            
+            try {
+                const preferences = await fetchUserPreferences();
+                let currencyPairs = preferences.saved_currency_pairs || [];
+                
+                // Check if pair already exists
+                const pairExists = currencyPairs.some(pair => 
+                    pair.from === from && pair.to === to
+                );
+                
+                if (pairExists) {
+                    alert('This currency pair is already saved.');
+                    return;
+                }
+                
+                // Add new pair
+                currencyPairs.push({ from, to });
+                
+                // Update preferences
+                await updateUserPreferences({
+                    saved_currency_pairs: currencyPairs
+                });
+                
+                // Re-render preferences
+                renderUserPreferences();
+                
+            } catch (error) {
+                console.error('Error saving currency pair:', error);
+                alert('Failed to save currency pair. Please try again.');
+            }
+        }
+        
+        // Update user preferences
+        async function updateUserPreferences(preferences) {
+            const token = getAccessToken();
+            if (!token) throw new Error('Not authenticated');
+            
+            const response = await fetch(`${AUTH_API_BASE_URL}/users/me/preferences`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(preferences)
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to update preferences');
+            }
+            
+            return await response.json();
+        }
+        
+        // Use a saved currency pair
+        function useCurrencyPair(e) {
+            const index = e.target.getAttribute('data-index');
+            
+            fetchUserPreferences()
+                .then(preferences => {
+                    const currencyPairs = preferences.saved_currency_pairs || [];
+                    if (index < 0 || index >= currencyPairs.length) return;
+                    
+                    const pair = currencyPairs[index];
+                    
+                    // Update select inputs
+                    document.getElementById('from-currency').value = pair.from;
+                    document.getElementById('to-currency').value = pair.to;
+                    
+                    // Trigger exchange rate update
+                    fetchExchangeRates();
+                })
+                .catch(error => {
+                    console.error('Error using currency pair:', error);
+                });
+        }
+        
+        // Delete a saved currency pair
+        async function deleteCurrencyPair(e) {
+            const index = e.target.getAttribute('data-index');
+            
+            try {
+                const preferences = await fetchUserPreferences();
+                let currencyPairs = preferences.saved_currency_pairs || [];
+                
+                if (index < 0 || index >= currencyPairs.length) return;
+                
+                // Remove the pair
+                currencyPairs.splice(index, 1);
+                
+                // Update preferences
+                await updateUserPreferences({
+                    saved_currency_pairs: currencyPairs
+                });
+                
+                // Re-render preferences
+                renderUserPreferences();
+                
+            } catch (error) {
+                console.error('Error deleting currency pair:', error);
+                alert('Failed to delete currency pair. Please try again.');
+            }
+        }
+        
+        // Logout function
+        function logout() {
+            // Clear local storage
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            
+            // Reload page
+            window.location.reload();
+        }
+        
+        // Init function
+        function initAuth() {
+            renderAuthUI();
+            renderUserPreferences();
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initAuth);
+    </script>
 </body>
 </html> 

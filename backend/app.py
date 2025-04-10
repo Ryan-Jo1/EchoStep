@@ -5,12 +5,21 @@ import redis
 from datetime import datetime, timedelta
 import os
 from routes_api import routes_api
+from user_api import user_api
+from flask_jwt_extended import JWTManager
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-# Register the routes API blueprint
+# JWT configuration
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-secret-key")  # Change in production!
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
+app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
+jwt = JWTManager(app)
+
+# Register the API blueprints
 app.register_blueprint(routes_api)
+app.register_blueprint(user_api)
 
 # Redis Connection for caching
 REDIS_HOST = os.getenv('REDIS_HOST', 'redis')
@@ -119,11 +128,6 @@ def translate():
     translated_text = translations.get(phrase, {}).get(lang, "Translation not found")
     return jsonify({"translated_text": translated_text})
 
-@app.route('/api/')
-@app.route('/')
-def home():
-    return {"message": "Travel API is running with currency conversion and walking routes!"}
-
 @app.route('/api/debug', methods=['GET'])
 def debug_endpoint():
     """A simple endpoint to test API functionality"""
@@ -132,6 +136,11 @@ def debug_endpoint():
         "message": "API is working correctly",
         "timestamp": datetime.utcnow().isoformat()
     })
+
+@app.route('/api/')
+@app.route('/')
+def home():
+    return {"message": "Travel API is running with currency conversion and walking routes!"}
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

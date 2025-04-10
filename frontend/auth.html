@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Companion - Authentication</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .auth-container {
+            max-width: 400px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .auth-tab {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: #6c757d;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .auth-tab.active {
+            color: #4a6bea;
+            border-bottom-color: #4a6bea;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #4a6bea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .auth-btn:hover {
+            background-color: #3a5bd9;
+        }
+
+        .auth-message {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 4px;
+            text-align: center;
+            display: none;
+        }
+
+        .auth-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .auth-message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="container">
+            <nav class="main-nav">
+                <a href="index.html" class="logo">TravelCompanion</a>
+                <ul class="nav-links">
+                    <li><a href="index.html">Currency Converter</a></li>
+                    <li><a href="routes.html">Walking Routes</a></li>
+                    <li><a href="auth.html" class="active">Login / Register</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1>Account Access</h1>
+        <div class="auth-container">
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="login">Login</button>
+                <button class="auth-tab" data-tab="register">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form active">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" class="form-control" required>
+                </div>
+                <button type="submit" class="auth-btn">Login</button>
+                <div id="login-message" class="auth-message"></div>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="auth-form">
+                <div class="form-group">
+                    <label for="register-name">Full Name</label>
+                    <input type="text" id="register-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-email">Email</label>
+                    <input type="email" id="register-email" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-confirm-password">Confirm Password</label>
+                    <input type="password" id="register-confirm-password" class="form-control" required>
+                </div>
+                <button type="submit" class="auth-btn">Register</button>
+                <div id="register-message" class="auth-message"></div>
+            </form>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <div class="container">
+            <p>&copy; 2023 Travel Companion App</p>
+        </div>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const loginMessage = document.getElementById('login-message');
+        const registerMessage = document.getElementById('register-message');
+        const authTabs = document.querySelectorAll('.auth-tab');
+        const authForms = document.querySelectorAll('.auth-form');
+
+        // API Base URL
+        const API_BASE_URL = '/api';
+
+        // Tab switching functionality
+        authTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.getAttribute('data-tab');
+                
+                // Update active tab
+                authTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Show corresponding form
+                authForms.forEach(form => {
+                    form.classList.remove('active');
+                    if (form.id === `${tabName}-form`) {
+                        form.classList.add('active');
+                    }
+                });
+                
+                // Clear messages
+                loginMessage.style.display = 'none';
+                registerMessage.style.display = 'none';
+            });
+        });
+
+        // Check if user is already logged in
+        function checkAuthStatus() {
+            const token = localStorage.getItem('access_token');
+            const user = JSON.parse(localStorage.getItem('user'));
+            
+            if (token && user) {
+                // User is logged in, redirect to homepage
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Display message
+        function showMessage(element, message, type) {
+            element.textContent = message;
+            element.className = 'auth-message';
+            element.classList.add(type);
+            element.style.display = 'block';
+        }
+
+        // Login form submission
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Login failed');
+                }
+                
+                // Save auth data to localStorage
+                localStorage.setItem('access_token', data.access_token);
+                localStorage.setItem('refresh_token', data.refresh_token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                
+                // Show success message
+                showMessage(loginMessage, 'Login successful! Redirecting...', 'success');
+                
+                // Redirect to homepage after a delay
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+                
+            } catch (error) {
+                showMessage(loginMessage, error.message, 'error');
+            }
+        });
+
+        // Register form submission
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('register-name').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+            
+            // Validate passwords match
+            if (password !== confirmPassword) {
+                showMessage(registerMessage, 'Passwords do not match', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Registration failed');
+                }
+                
+                // Save auth data to localStorage
+                localStorage.setItem('access_token', data.access_token);
+                localStorage.setItem('refresh_token', data.refresh_token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                
+                // Show success message
+                showMessage(registerMessage, 'Registration successful! Redirecting...', 'success');
+                
+                // Redirect to homepage after a delay
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
+                
+            } catch (error) {
+                showMessage(registerMessage, error.message, 'error');
+            }
+        });
+
+        // Check auth status on page load
+        checkAuthStatus();
+    </script>
+</body>
+</html>
