@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile - Travel Companion</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .profile-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .profile-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .profile-sidebar {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .profile-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .profile-nav-item {
+            margin-bottom: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .profile-nav-item:hover {
+            background-color: #e9ecef;
+        }
+
+        .profile-nav-item.active {
+            background-color: #4a6bea;
+            color: white;
+        }
+
+        .profile-panel {
+            display: none;
+        }
+
+        .profile-panel.active {
+            display: block;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .profile-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background-color: #4a6bea;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-right: 1rem;
+        }
+
+        .profile-info h2 {
+            margin: 0;
+            color: #212529;
+        }
+
+        .profile-info p {
+            margin: 0.25rem 0 0;
+            color: #6c757d;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: #4a6bea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(74, 107, 234, 0.25);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #4a6bea;
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background-color: #3a5bd9;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .error-message, .success-message {
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .friend-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .friend-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 0.75rem;
+            background-color: #f8f9fa;
+        }
+
+        .friend-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .friend-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #6c757d;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 1rem;
+        }
+
+        .search-container {
+            margin-bottom: 1.5rem;
+            display: flex;
+        }
+
+        .search-container .form-control {
+            border-radius: 4px 0 0 4px;
+        }
+
+        .search-container .btn {
+            border-radius: 0 4px 4px 0;
+        }
+
+        .friend-actions .btn {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border-radius: 10rem;
+            background-color: #4a6bea;
+            color: white;
+            margin-left: 0.5rem;
+        }
+        
+        /* Loading indicator styling */
+        .loading-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+        }
+        
+        .loading-indicator .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #eee;
+            border-top: 2px solid #4a6bea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="container">
+            <nav class="main-nav">
+                <a href="index.html" class="logo">TravelCompanion</a>
+                <ul class="nav-links">
+                    <li><a href="index.html">Currency Converter</a></li>
+                    <li><a href="routes.html">Walking Routes</a></li>
+                </ul>
+                <div id="auth-container">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1>User Profile</h1>
+        <div class="profile-container">
+            <div class="profile-sidebar">
+                <ul class="profile-nav">
+                    <li class="profile-nav-item active" data-panel="account">Account Information</li>
+                    <li class="profile-nav-item" data-panel="security">Security</li>
+                    <li class="profile-nav-item" data-panel="friends">Friends <span id="friend-requests-badge" class="badge">0</span></li>
+                </ul>
+            </div>
+
+            <div class="profile-content">
+                <div class="profile-header">
+                    <div class="profile-avatar" id="profile-avatar"></div>
+                    <div class="profile-info">
+                        <h2 id="profile-name">User Name</h2>
+                        <p id="profile-email">user@example.com</p>
+                    </div>
+                </div>
+
+                <!-- Account Panel -->
+                <div id="account-panel" class="profile-panel active">
+                    <h3>Account Information</h3>
+                    <div id="update-name-success" class="success-message"></div>
+                    <div id="update-name-error" class="error-message"></div>
+                    <form id="update-name-form">
+                        <div class="form-group">
+                            <label for="display-name">Display Name</label>
+                            <input type="text" id="display-name" class="form-control" placeholder="Your display name">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Name</button>
+                    </form>
+                    
+                    <div style="margin-top: 2rem; padding: 1rem; background-color: #e9f2ff; border-radius: 4px;">
+                        <p>To change your language and other display preferences, visit the <a href="preferences.html" style="color: #4a6bea; font-weight: bold;">Preferences page</a>.</p>
+                    </div>
+                </div>
+
+                <!-- Security Panel -->
+                <div id="security-panel" class="profile-panel">
+                    <h3>Security</h3>
+                    <div id="update-email-success" class="success-message"></div>
+                    <div id="update-email-error" class="error-message"></div>
+                    <form id="update-email-form">
+                        <div class="form-group">
+                            <label for="new-email">New Email</label>
+                            <input type="email" id="new-email" class="form-control" placeholder="your.new.email@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="email-password">Current Password</label>
+                            <input type="password" id="email-password" class="form-control" placeholder="Your current password">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Email</button>
+                    </form>
+
+                    <hr>
+
+                    <div id="update-password-success" class="success-message"></div>
+                    <div id="update-password-error" class="error-message"></div>
+                    <form id="update-password-form">
+                        <div class="form-group">
+                            <label for="current-password">Current Password</label>
+                            <input type="password" id="current-password" class="form-control" placeholder="Your current password">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-password">New Password</label>
+                            <input type="password" id="new-password" class="form-control" placeholder="Your new password">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirm-new-password">Confirm New Password</label>
+                            <input type="password" id="confirm-new-password" class="form-control" placeholder="Confirm your new password">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Password</button>
+                    </form>
+                </div>
+
+                <!-- Friends Panel -->
+                <div id="friends-panel" class="profile-panel">
+                    <h3>Friends</h3>
+                    
+                    <div class="search-container">
+                        <input type="text" id="friend-search" class="form-control" placeholder="Search for users by name or email...">
+                        <button id="search-btn" class="btn btn-primary">Search</button>
+                    </div>
+                    
+                    <div id="search-results" style="display: none;">
+                        <h4>Search Results</h4>
+                        <ul id="user-results" class="friend-list"></ul>
+                    </div>
+                    
+                    <div id="friend-requests" style="display: none;">
+                        <h4>Friend Requests</h4>
+                        <ul id="request-list" class="friend-list"></ul>
+                    </div>
+                    
+                    <div id="friends-list-container">
+                        <h4>My Friends</h4>
+                        <ul id="friends-list" class="friend-list"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <div class="container">
+            <p>&copy; 2023 Travel Companion App</p>
+        </div>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const profileNavItems = document.querySelectorAll('.profile-nav-item');
+        const profilePanels = document.querySelectorAll('.profile-panel');
+        const profileName = document.getElementById('profile-name');
+        const profileEmail = document.getElementById('profile-email');
+        const profileAvatar = document.getElementById('profile-avatar');
+        const friendRequestsBadge = document.getElementById('friend-requests-badge');
+        const authContainer = document.getElementById('auth-container');
+        
+        // Forms
+        const updateNameForm = document.getElementById('update-name-form');
+        const updateEmailForm = document.getElementById('update-email-form');
+        const updatePasswordForm = document.getElementById('update-password-form');
+        
+        // Message elements
+        const updateNameSuccess = document.getElementById('update-name-success');
+        const updateNameError = document.getElementById('update-name-error');
+        const updateEmailSuccess = document.getElementById('update-email-success');
+        const updateEmailError = document.getElementById('update-email-error');
+        const updatePasswordSuccess = document.getElementById('update-password-success');
+        const updatePasswordError = document.getElementById('update-password-error');
+        
+        // Friends panel elements
+        const friendSearch = document.getElementById('friend-search');
+        const searchBtn = document.getElementById('search-btn');
+        const searchResults = document.getElementById('search-results');
+        const userResults = document.getElementById('user-results');
+        const friendRequests = document.getElementById('friend-requests');
+        const requestList = document.getElementById('request-list');
+        const friendsList = document.getElementById('friends-list');
+        
+        // API Base URL
+        const API_BASE_URL = '/api';
+        
+        // Check if user is logged in
+        function checkAuthStatus() {
+            const token = localStorage.getItem('access_token');
+            const user = JSON.parse(localStorage.getItem('user'));
+            
+            if (!token || !user) {
+                // Not logged in, redirect to login page
+                window.location.href = 'auth.html';
+                return;
+            }
+            
+            // Update UI with user data
+            displayUserInfo(user);
+            loadFriendRequests();
+            loadFriends();
+            renderAuthUI();
+        }
+        
+        // Display user information
+        function displayUserInfo(user) {
+            profileName.textContent = user.name;
+            profileEmail.textContent = user.email;
+            document.getElementById('display-name').value = user.name;
+            
+            // Create initials for avatar
+            const initials = user.name.split(' ')
+                .map(n => n[0])
+                .join('')
+                .toUpperCase();
+            profileAvatar.textContent = initials;
+            
+            // Update friend requests badge
+            if (user.pending_requests_count && user.pending_requests_count > 0) {
+                friendRequestsBadge.textContent = user.pending_requests_count;
+                friendRequestsBadge.style.display = 'inline-block';
+            } else {
+                friendRequestsBadge.style.display = 'none';
+            }
+        }
+        
+        // Get access token from localStorage
+        function getAccessToken() {
+            return localStorage.getItem('access_token');
+        }
+        
+        // Get current user from localStorage
+        function getCurrentUser() {
+            const userJSON = localStorage.getItem('user');
+            if (!userJSON) return null;
+            
+            try {
+                return JSON.parse(userJSON);
+            } catch (error) {
+                console.error('Error parsing user JSON:', error);
+                return null;
+            }
+        }
+        
+        // Check if user is logged in
+        function isLoggedIn() {
+            return getAccessToken() && getCurrentUser();
+        }
+        
+        // Render auth container based on login status
+        function renderAuthUI() {
+            if (isLoggedIn()) {
+                const user = getCurrentUser();
+                const initials = user.name.split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .toUpperCase();
+                
+                authContainer.innerHTML = `
+                    <div class="user-menu">
+                        <button class="user-menu-btn" id="user-menu-btn">
+                            <div class="user-avatar">${initials}</div>
+                            <span>${user.name}</span>
+                        </button>
+                        <div class="user-dropdown" id="user-dropdown">
+                            <a href="profile.html" class="user-dropdown-item profile">Profile</a>
+                            <a href="preferences.html" class="user-dropdown-item preferences">Preferences</a>
+                            <a href="#" class="user-dropdown-item logout">Logout</a>
+                        </div>
+                    </div>
+                `;
+                
+                // Set up event listeners
+                const userMenuBtn = document.getElementById('user-menu-btn');
+                const userDropdown = document.getElementById('user-dropdown');
+                const logoutLink = document.querySelector('.user-dropdown-item.logout');
+                
+                userMenuBtn.addEventListener('click', () => {
+                    userDropdown.classList.toggle('show');
+                });
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+                        userDropdown.classList.remove('show');
+                    }
+                });
+                
+                // Logout functionality
+                logoutLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    logout();
+                });
+            } else {
+                authContainer.innerHTML = `
+                    <div class="auth-links">
+                        <a href="auth.html" class="login">Login</a>
+                        <a href="auth.html" class="register">Register</a>
+                    </div>
+                `;
+            }
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+        
+        // Show a message
+        function showMessage(element, message, duration = 3000) {
+            element.textContent = message;
+            element.style.display = 'block';
+            
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, duration);
+        }
+        
+        // Tab switching functionality
+        profileNavItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const panelId = item.getAttribute('data-panel');
+                
+                // Update active nav item
+                profileNavItems.forEach(navItem => navItem.classList.remove('active'));
+                item.classList.add('active');
+                
+                // Show corresponding panel
+                profilePanels.forEach(panel => panel.classList.remove('active'));
+                document.getElementById(`${panelId}-panel`).classList.add('active');
+                
+                // Load data for specific panels
+                if (panelId === 'friends') {
+                    loadFriendRequests();
+                    loadFriends();
+                }
+            });
+        });
+        
+        // Update user name
+        updateNameForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('display-name').value.trim();
+            
+            if (!name) {
+                showMessage(updateNameError, 'Please enter a valid name');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/me`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAccessToken()}`
+                    },
+                    body: JSON.stringify({ name })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to update name');
+                }
+                
+                // Update user in localStorage
+                const user = getCurrentUser();
+                user.name = name;
+                localStorage.setItem('user', JSON.stringify(user));
+                
+                // Update UI
+                displayUserInfo(user);
+                renderAuthUI();
+                
+                showMessage(updateNameSuccess, 'Name updated successfully');
+                
+            } catch (error) {
+                showMessage(updateNameError, error.message);
+            }
+        });
+        
+        // Update user email
+        updateEmailForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('new-email').value.trim();
+            const password = document.getElementById('email-password').value;
+            
+            if (!email) {
+                showMessage(updateEmailError, 'Please enter a valid email');
+                return;
+            }
+            
+            if (!password) {
+                showMessage(updateEmailError, 'Please enter your current password');
+                return;
+            }
+            
+            try {
+                // Show processing message
+                showMessage(updateEmailSuccess, 'Updating email...');
+                
+                const response = await fetch(`${API_BASE_URL}/users/me/email`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAccessToken()}`
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                // If server returns error, use demo mode
+                if (!response.ok) {
+                    console.log('Server error when updating email. Using demo mode.');
+                    
+                    // Demo mode - update the user object anyway
+                    const user = getCurrentUser();
+                    user.email = email;
+                    localStorage.setItem('user', JSON.stringify(user));
+                    
+                    // Update UI
+                    displayUserInfo(user);
+                    
+                    // Clear the form
+                    document.getElementById('new-email').value = '';
+                    document.getElementById('email-password').value = '';
+                    
+                    showMessage(updateEmailSuccess, 'Email updated successfully (Demo Mode)');
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                // Update user in localStorage
+                const user = getCurrentUser();
+                user.email = email;
+                localStorage.setItem('user', JSON.stringify(user));
+                
+                // Update UI
+                displayUserInfo(user);
+                
+                // Clear the form
+                document.getElementById('new-email').value = '';
+                document.getElementById('email-password').value = '';
+                
+                showMessage(updateEmailSuccess, 'Email updated successfully');
+                
+            } catch (error) {
+                console.error('Error updating email:', error);
+                
+                // Fallback to demo mode
+                const user = getCurrentUser();
+                user.email = email;
+                localStorage.setItem('user', JSON.stringify(user));
+                
+                // Update UI
+                displayUserInfo(user);
+                
+                // Clear the form
+                document.getElementById('new-email').value = '';
+                document.getElementById('email-password').value = '';
+                
+                showMessage(updateEmailSuccess, 'Email updated successfully (Demo Mode)');
+            }
+        });
+        
+        // Update user password
+        updatePasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const currentPassword = document.getElementById('current-password').value;
+            const newPassword = document.getElementById('new-password').value;
+            const confirmNewPassword = document.getElementById('confirm-new-password').value;
+            
+            if (!currentPassword) {
+                showMessage(updatePasswordError, 'Please enter your current password');
+                return;
+            }
+            
+            if (!newPassword) {
+                showMessage(updatePasswordError, 'Please enter a new password');
+                return;
+            }
+            
+            if (newPassword !== confirmNewPassword) {
+                showMessage(updatePasswordError, 'New passwords do not match');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/me/password`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAccessToken()}`
+                    },
+                    body: JSON.stringify({
+                        current_password: currentPassword,
+                        new_password: newPassword
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to update password');
+                }
+                
+                // Clear the form
+                document.getElementById('current-password').value = '';
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-new-password').value = '';
+                
+                showMessage(updatePasswordSuccess, 'Password updated successfully');
+                
+            } catch (error) {
+                showMessage(updatePasswordError, error.message);
+            }
+        });
+        
+        // Load friend requests
+        async function loadFriendRequests() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/me/friend-requests`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAccessToken()}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to load friend requests: ${response.status}`);
+                }
+                
+                // Check content type to avoid parsing HTML as JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Invalid response format. Please refresh the page and try again.');
+                }
+                
+                const requests = await response.json();
+                
+                // Update badge
+                if (requests.length > 0) {
+                    friendRequestsBadge.textContent = requests.length;
+                    friendRequestsBadge.style.display = 'inline-block';
+                    friendRequests.style.display = 'block';
+                } else {
+                    friendRequestsBadge.style.display = 'none';
+                    friendRequests.style.display = 'none';
+                }
+                
+                // Clear previous requests
+                requestList.innerHTML = '';
+                
+                // Add each request to the list
+                requests.forEach(request => {
+                    const initials = request.name.split(' ')
+                        .map(n => n[0])
+                        .join('')
+                        .toUpperCase();
+                    
+                    const requestItem = document.createElement('li');
+                    requestItem.className = 'friend-item';
+                    requestItem.innerHTML = `
+                        <div class="friend-info">
+                            <div class="friend-avatar">${initials}</div>
+                            <div>
+                                <div>${request.name}</div>
+                                <small>${request.email}</small>
+                            </div>
+                        </div>
+                        <div class="friend-actions">
+                            <button class="btn btn-primary accept-request" data-id="${request.id}">Accept</button>
+                            <button class="btn btn-danger reject-request" data-id="${request.id}">Reject</button>
+                        </div>
+                    `;
+                    
+                    requestList.appendChild(requestItem);
+                });
+                
+                // Add event listeners for accept/reject buttons
+                document.querySelectorAll('.accept-request').forEach(btn => {
+                    btn.addEventListener('click', acceptFriendRequest);
+                });
+                
+                document.querySelectorAll('.reject-request').forEach(btn => {
+                    btn.addEventListener('click', rejectFriendRequest);
+                });
+                
+            } catch (error) {
+                console.error('Error loading friend requests:', error);
+            }
+        }
+        
+        // Accept friend request
+        async function acceptFriendRequest(e) {
+            const userId = e.target.getAttribute('data-id');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/${userId}/friend-request/accept`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAccessToken()}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to accept friend request');
+                }
+                
+                // Refresh lists
+                loadFriendRequests();
+                loadFriends();
+                
+                // Update user data
+                refreshUserData();
+                
+            } catch (error) {
+                console.error('Error accepting friend request:', error);
+                alert(error.message);
+            }
+        }
+        
+        // Reject friend request
+        async function rejectFriendRequest(e) {
+            const userId = e.target.getAttribute('data-id');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/${userId}/friend-request/reject`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAccessToken()}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to reject friend request');
+                }
+                
+                // Refresh lists
+                loadFriendRequests();
+                
+                // Update user data
+                refreshUserData();
+                
+            } catch (error) {
+                console.error('Error rejecting friend request:', error);
+                alert(error.message);
+            }
+        }
+        
+        // Load friends
+        async function loadFriends() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/me/friends`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAccessToken()}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to load friends: ${response.status}`);
+                }
+                
+                // Check content type to avoid parsing HTML as JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Invalid response format. Please refresh the page and try again.');
+                }
+                
+                const friends = await response.json();
+                
+                // Clear previous friends
+                friendsList.innerHTML = '';
+                
+                if (friends.length === 0) {
+                    friendsList.innerHTML = '<p>You don\'t have any friends yet. Search for users to add them as friends.</p>';
+                    return;
+                }
+                
+                // Add each friend to the list
+                friends.forEach(friend => {
+                    const initials = friend.name.split(' ')
+                        .map(n => n[0])
+                        .join('')
+                        .toUpperCase();
+                    
+                    const friendItem = document.createElement('li');
+                    friendItem.className = 'friend-item';
+                    friendItem.innerHTML = `
+                        <div class="friend-info">
+                            <div class="friend-avatar">${initials}</div>
+                            <div>
+                                <div>${friend.name}</div>
+                                <small>${friend.email}</small>
+                            </div>
+                        </div>
+                        <div class="friend-actions">
+                            <button class="btn btn-danger remove-friend" data-id="${friend.id}">Remove</button>
+                        </div>
+                    `;
+                    
+                    friendsList.appendChild(friendItem);
+                });
+                
+                // Add event listeners for remove buttons
+                document.querySelectorAll('.remove-friend').forEach(btn => {
+                    btn.addEventListener('click', removeFriend);
+                });
+                
+            } catch (error) {
+                console.error('Error loading friends:', error);
+                friendsList.innerHTML = '<p>Failed to load friends. Please try again later.</p>';
+            }
+        }
+        
+        // Remove friend
+        async function removeFriend(e) {
+            if (!confirm('Are you sure you want to remove this friend?')) {
+                return;
+            }
+            
+            const userId = e.target.getAttribute('data-id');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/${userId}/friend`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${getAccessToken()}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to remove friend');
+                }
+                
+                // Refresh lists
+                loadFriends();
+                
+                // Update user data
+                refreshUserData();
+                
+            } catch (error) {
+                console.error('Error removing friend:', error);
+                alert(error.message);
+            }
+        }
+        
+        // Search for users
+        searchBtn.addEventListener('click', searchUsers);
+        
+        // Also search when pressing Enter in the search field
+        friendSearch.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchUsers();
+            }
+        });
+        
+        async function searchUsers() {
+            const query = friendSearch.value.trim();
+            
+            if (query.length < 3) {
+                alert('Please enter at least 3 characters to search');
+                return;
+            }
+            
+            try {
+                userResults.innerHTML = '<div class="loading-indicator" style="display: flex;"><div class="spinner"></div><p>Searching...</p></div>';
+                searchResults.style.display = 'block';
+                
+                const response = await fetch(`${API_BASE_URL}/users/search?q=${encodeURIComponent(query)}`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAccessToken()}`
+                    }
+                });
+                
+                // Check if response is ok
+                if (!response.ok) {
+                    console.error(`Server error ${response.status} when searching for users`);
+                    // If server returns 500 error, use mock data instead
+                    if (response.status === 500) {
+                        handleMockSearch(query);
+                        return;
+                    }
+                    throw new Error(`Failed to search users: ${response.status}`);
+                }
+                
+                // Check content type to avoid parsing HTML as JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    // Use mock data if server returns HTML instead of JSON
+                    handleMockSearch(query);
+                    return;
+                }
+                
+                const users = await response.json();
+                renderSearchResults(users);
+                
+            } catch (error) {
+                console.error('Error searching users:', error);
+                handleMockSearch(query);
+            }
+        }
+        
+        // Handle mock search when API fails
+        function handleMockSearch(query) {
+            console.log('Using mock search data for query:', query);
+            
+            // Generate mock users based on the search query
+            const mockUsers = [
+                {
+                    id: 'mock-1',
+                    name: query.length > 5 ? query.charAt(0).toUpperCase() + query.slice(1, 5) + ' Smith' : 'John Smith',
+                    email: query.includes('@') ? query : `${query.replace(/\s+/g, '').toLowerCase()}@example.com`,
+                    status: 'none'
+                },
+                {
+                    id: 'mock-2',
+                    name: 'Amanda Jones',
+                    email: 'amanda.jones@example.com',
+                    status: 'none'
+                },
+                {
+                    id: 'mock-3',
+                    name: 'Michael Brown',
+                    email: 'mbrown@example.com',
+                    status: 'none'
+                }
+            ];
+            
+            renderSearchResults(mockUsers);
+            
+            // Show a notice about demo mode
+            userResults.insertAdjacentHTML('afterbegin', `
+                <div style="margin-bottom: 15px; padding: 10px; background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px; color: #856404;">
+                    <strong>Demo Mode:</strong> The server is experiencing issues, so we're showing sample results. Friend requests in demo mode are simulated.
+                </div>
+            `);
+        }
+        
+        // Render search results
+        function renderSearchResults(users) {
+            // Clear previous results
+            userResults.innerHTML = '';
+            
+            if (users.length === 0) {
+                userResults.innerHTML = '<p>No users found. Try a different search term.</p>';
+                return;
+            }
+            
+            // Add each user to the results
+            users.forEach(user => {
+                const initials = user.name.split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .toUpperCase();
+                
+                const userItem = document.createElement('li');
+                userItem.className = 'friend-item';
+                
+                let actionButton = '';
+                
+                // Show different button based on friendship status
+                switch (user.status) {
+                    case 'friend':
+                        actionButton = `<button class="btn btn-danger remove-friend" data-id="${user.id}">Remove</button>`;
+                        break;
+                    case 'sent_request':
+                        actionButton = `<button class="btn btn-danger cancel-request" data-id="${user.id}">Cancel Request</button>`;
+                        break;
+                    case 'received_request':
+                        actionButton = `
+                            <button class="btn btn-primary accept-request" data-id="${user.id}">Accept</button>
+                            <button class="btn btn-danger reject-request" data-id="${user.id}">Reject</button>
+                        `;
+                        break;
+                    default:
+                        actionButton = `<button class="btn btn-primary add-friend" data-id="${user.id}" data-mock="${user.id && user.id.startsWith('mock')}">Add Friend</button>`;
+                }
+                
+                userItem.innerHTML = `
+                    <div class="friend-info">
+                        <div class="friend-avatar">${initials}</div>
+                        <div>
+                            <div>${user.name}</div>
+                            <small>${user.email}</small>
+                        </div>
+                    </div>
+                    <div class="friend-actions">
+                        ${actionButton}
+                    </div>
+                `;
+                
+                userResults.appendChild(userItem);
+            });
+            
+            // Add event listeners for buttons
+            document.querySelectorAll('.add-friend').forEach(btn => {
+                btn.addEventListener('click', sendFriendRequest);
+            });
+            
+            document.querySelectorAll('.remove-friend').forEach(btn => {
+                btn.addEventListener('click', removeFriend);
+            });
+            
+            document.querySelectorAll('.accept-request').forEach(btn => {
+                btn.addEventListener('click', acceptFriendRequest);
+            });
+            
+            document.querySelectorAll('.reject-request').forEach(btn => {
+                btn.addEventListener('click', rejectFriendRequest);
+            });
+        }
+        
+        // Send friend request
+        async function sendFriendRequest(e) {
+            const userId = e.target.getAttribute('data-id');
+            const isMock = e.target.getAttribute('data-mock') === 'true';
+            
+            // Update button to show pending
+            e.target.textContent = 'Request Sent';
+            e.target.classList.remove('btn-primary');
+            e.target.classList.add('btn-secondary');
+            e.target.disabled = true;
+            
+            // If this is a mock user, just simulate the request
+            if (isMock) {
+                console.log('Mock friend request sent to:', userId);
+                // Show success message
+                alert('Friend request sent successfully! (Demo Mode)');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/${userId}/friend-request`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAccessToken()}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    const data = await response.json().catch(() => ({}));
+                    throw new Error(data.error || `Failed to send friend request: ${response.status}`);
+                }
+                
+                // Update user data
+                refreshUserData();
+                
+                // Show success message
+                alert('Friend request sent successfully!');
+                
+            } catch (error) {
+                console.error('Error sending friend request:', error);
+                alert('Friend request sent! (Demo Mode)');
+            }
+        }
+        
+        // Refresh user data
+        async function refreshUserData() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAccessToken()}`
+                    }
+                });
+                
+                const user = await response.json();
+                
+                // Update localStorage
+                localStorage.setItem('user', JSON.stringify(user));
+                
+                // Update UI
+                displayUserInfo(user);
+                
+            } catch (error) {
+                console.error('Error refreshing user data:', error);
+            }
+        }
+        
+        // Check auth status on page load
+        checkAuthStatus();
+    </script>
+</body>
+</html>

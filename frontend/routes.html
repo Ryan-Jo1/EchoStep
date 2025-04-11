@@ -355,8 +355,8 @@
                             <span>${user.name}</span>
                         </button>
                         <div class="user-dropdown" id="user-dropdown">
-                            <a href="#" class="user-dropdown-item profile">Profile</a>
-                            <a href="#" class="user-dropdown-item preferences">Preferences</a>
+                            <a href="profile.html" class="user-dropdown-item profile">Profile</a>
+                            <a href="preferences.html" class="user-dropdown-item preferences">Preferences</a>
                             <a href="#" class="user-dropdown-item logout">Logout</a>
                         </div>
                     </div>
@@ -405,7 +405,98 @@
         }
         
         // Initialize on page load
-        document.addEventListener('DOMContentLoaded', renderAuthUI);
+        document.addEventListener('DOMContentLoaded', () => {
+            renderAuthUI();
+            applyStoredLanguagePreference();
+        });
+        
+        // Apply stored language preference
+        function applyStoredLanguagePreference() {
+            // Get stored preferences
+            const storedPrefs = localStorage.getItem('userPreferences');
+            if (storedPrefs) {
+                try {
+                    const prefs = JSON.parse(storedPrefs);
+                    if (prefs.language) {
+                        document.documentElement.lang = prefs.language;
+                        
+                        // Simple example of language implementation
+                        const translationKeys = {
+                            'en': {
+                                'routesTitle': 'Discover Local Walking Routes',
+                                'routesSubtitle': 'Find popular walks near you or share your own adventures',
+                                'nearMeBtn': 'Find Routes Near Me',
+                                'filterRoutes': 'Filter Routes',
+                                'addRouteBtn': 'Add Your Route'
+                            },
+                            'es': {
+                                'routesTitle': 'Descubre Rutas de Caminata Locales',
+                                'routesSubtitle': 'Encuentra caminatas populares cerca de ti o comparte tus propias aventuras',
+                                'nearMeBtn': 'Encontrar Rutas Cercanas',
+                                'filterRoutes': 'Filtrar Rutas',
+                                'addRouteBtn': 'Agregar Tu Ruta'
+                            },
+                            'fr': {
+                                'routesTitle': 'Découvrez des Itinéraires de Marche Locaux',
+                                'routesSubtitle': 'Trouvez des promenades populaires près de chez vous ou partagez vos propres aventures',
+                                'nearMeBtn': 'Trouver des Itinéraires à Proximité',
+                                'filterRoutes': 'Filtrer les Itinéraires',
+                                'addRouteBtn': 'Ajouter Votre Itinéraire'
+                            }
+                            // Add other languages as needed
+                        };
+                        
+                        // Get translations for selected language or fallback to English
+                        const translations = translationKeys[prefs.language] || translationKeys['en'];
+                        
+                        try {
+                            // Safely update text content with error handling
+                            const safeUpdateText = (selector, text) => {
+                                const element = document.querySelector(selector);
+                                if (element) {
+                                    element.textContent = text;
+                                } else {
+                                    console.warn(`Element not found: ${selector}`);
+                                }
+                            };
+                            
+                            const safeUpdateHTML = (selector, html) => {
+                                const element = document.querySelector(selector);
+                                if (element) {
+                                    element.innerHTML = html;
+                                } else {
+                                    console.warn(`Element not found: ${selector}`);
+                                }
+                            };
+                            
+                            // Update text content based on language
+                            safeUpdateText('.routes-hero h1', translations.routesTitle);
+                            safeUpdateText('.routes-hero p', translations.routesSubtitle);
+                            safeUpdateText('.routes-filter h3', translations.filterRoutes);
+                            
+                            // Update HTML content
+                            safeUpdateHTML('#locate-me', `
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
+                                </svg>
+                                ${translations.nearMeBtn}
+                            `);
+                            
+                            safeUpdateHTML('#add-route-btn', `
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
+                                </svg>
+                                ${translations.addRouteBtn}
+                            `);
+                        } catch (updateError) {
+                            console.error('Error updating language elements:', updateError);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error parsing stored preferences:', e);
+                }
+            }
+        }
     </script>
 </body>
 </html> 

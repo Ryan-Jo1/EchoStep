@@ -333,8 +333,8 @@
                             <span>${user.name}</span>
                         </button>
                         <div class="user-dropdown" id="user-dropdown">
-                            <a href="#" class="user-dropdown-item profile">Profile</a>
-                            <a href="#" class="user-dropdown-item preferences">Preferences</a>
+                            <a href="profile.html" class="user-dropdown-item profile">Profile</a>
+                            <a href="preferences.html" class="user-dropdown-item preferences">Preferences</a>
                             <a href="#" class="user-dropdown-item logout">Logout</a>
                         </div>
                     </div>
@@ -579,6 +579,97 @@
         function initAuth() {
             renderAuthUI();
             renderUserPreferences();
+            applyStoredLanguagePreference();
+        }
+        
+        // Apply stored language preference
+        function applyStoredLanguagePreference() {
+            // Get stored preferences
+            const storedPrefs = localStorage.getItem('userPreferences');
+            if (storedPrefs) {
+                try {
+                    const prefs = JSON.parse(storedPrefs);
+                    if (prefs.language) {
+                        document.documentElement.lang = prefs.language;
+                        
+                        // Simple example of language implementation
+                        const translationKeys = {
+                            'en': {
+                                'converterTitle': 'Currency Converter',
+                                'enterAmount': 'Enter amount',
+                                'convertBtn': 'Convert',
+                                'savedPairs': 'Saved Currency Pairs',
+                                'saveCurrentPair': 'Save Current Pair'
+                            },
+                            'es': {
+                                'converterTitle': 'Conversor de Moneda',
+                                'enterAmount': 'Ingrese cantidad',
+                                'convertBtn': 'Convertir',
+                                'savedPairs': 'Pares de Monedas Guardados',
+                                'saveCurrentPair': 'Guardar Par Actual'
+                            },
+                            'fr': {
+                                'converterTitle': 'Convertisseur de Devises',
+                                'enterAmount': 'Entrez le montant',
+                                'convertBtn': 'Convertir',
+                                'savedPairs': 'Paires de Devises Enregistrées',
+                                'saveCurrentPair': 'Enregistrer la Paire Actuelle'
+                            }
+                            // Add other languages as needed
+                        };
+                        
+                        // Get translations for selected language or fallback to English
+                        const translations = translationKeys[prefs.language] || translationKeys['en'];
+                        
+                        // Safely update text content with error handling
+                        const safeUpdateText = (selector, text) => {
+                            try {
+                                const element = document.querySelector(selector);
+                                if (element) {
+                                    element.textContent = text;
+                                }
+                            } catch (err) {
+                                console.warn(`Error updating ${selector}:`, err);
+                            }
+                        };
+                        
+                        const safeUpdateAttribute = (selector, attr, value) => {
+                            try {
+                                const element = document.getElementById(selector);
+                                if (element) {
+                                    element.setAttribute(attr, value);
+                                }
+                            } catch (err) {
+                                console.warn(`Error updating ${selector} attribute:`, err);
+                            }
+                        };
+                        
+                        // Update text content based on language - with error handling
+                        safeUpdateText('h1', translations.converterTitle);
+                        safeUpdateAttribute('amount', 'placeholder', translations.enterAmount);
+                        
+                        // Update convert button if it exists
+                        const convertBtn = document.getElementById('convert-btn');
+                        if (convertBtn) {
+                            convertBtn.textContent = translations.convertBtn;
+                        }
+                        
+                        // Update currency pairs section if it exists
+                        const savePairBtn = document.getElementById('save-current-pair');
+                        if (savePairBtn) {
+                            savePairBtn.textContent = translations.saveCurrentPair;
+                            
+                            // Update heading if it exists
+                            const prefHeading = document.querySelector('.preference-heading h3');
+                            if (prefHeading) {
+                                prefHeading.textContent = translations.savedPairs;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error parsing stored preferences:', e);
+                }
+            }
         }
         
         // Initialize on page load

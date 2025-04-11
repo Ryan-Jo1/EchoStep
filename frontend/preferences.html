@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Preferences - Travel Companion</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .preferences-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .preferences-group {
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .preferences-group:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .preferences-group h3 {
+            margin-top: 0;
+            color: #212529;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: #4a6bea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(74, 107, 234, 0.25);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: #4a6bea;
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background-color: #3a5bd9;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .error-message, .success-message {
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .language-option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .language-option:hover {
+            background-color: #e9ecef;
+        }
+
+        .language-option.selected {
+            background-color: #e9f2ff;
+            border-color: #4a6bea;
+        }
+
+        .language-flag {
+            width: 32px;
+            height: 24px;
+            margin-right: 1rem;
+            border-radius: 2px;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .language-info {
+            flex: 1;
+        }
+
+        .language-name {
+            font-weight: 500;
+        }
+
+        .language-native {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+
+        input[type="radio"] {
+            margin-left: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="container">
+            <nav class="main-nav">
+                <a href="index.html" class="logo">TravelCompanion</a>
+                <ul class="nav-links">
+                    <li><a href="index.html">Currency Converter</a></li>
+                    <li><a href="routes.html">Walking Routes</a></li>
+                </ul>
+                <div id="auth-container">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <h1>Preferences</h1>
+        <div class="preferences-container">
+            <div id="update-success" class="success-message"></div>
+            <div id="update-error" class="error-message"></div>
+
+            <div class="preferences-group">
+                <h3>Language Settings</h3>
+                <p>Choose your preferred language for the application. This will affect the user interface and content.</p>
+                
+                <div id="language-options">
+                    <div class="language-option" data-lang="en">
+                        <div class="language-flag" style="background-image: url('https://flagcdn.com/w40/us.png')"></div>
+                        <div class="language-info">
+                            <div class="language-name">English</div>
+                            <div class="language-native">English</div>
+                        </div>
+                        <input type="radio" name="language" value="en">
+                    </div>
+                    
+                    <div class="language-option" data-lang="es">
+                        <div class="language-flag" style="background-image: url('https://flagcdn.com/w40/es.png')"></div>
+                        <div class="language-info">
+                            <div class="language-name">Spanish</div>
+                            <div class="language-native">Español</div>
+                        </div>
+                        <input type="radio" name="language" value="es">
+                    </div>
+                    
+                    <div class="language-option" data-lang="fr">
+                        <div class="language-flag" style="background-image: url('https://flagcdn.com/w40/fr.png')"></div>
+                        <div class="language-info">
+                            <div class="language-name">French</div>
+                            <div class="language-native">Français</div>
+                        </div>
+                        <input type="radio" name="language" value="fr">
+                    </div>
+                    
+                    <div class="language-option" data-lang="de">
+                        <div class="language-flag" style="background-image: url('https://flagcdn.com/w40/de.png')"></div>
+                        <div class="language-info">
+                            <div class="language-name">German</div>
+                            <div class="language-native">Deutsch</div>
+                        </div>
+                        <input type="radio" name="language" value="de">
+                    </div>
+                    
+                    <div class="language-option" data-lang="it">
+                        <div class="language-flag" style="background-image: url('https://flagcdn.com/w40/it.png')"></div>
+                        <div class="language-info">
+                            <div class="language-name">Italian</div>
+                            <div class="language-native">Italiano</div>
+                        </div>
+                        <input type="radio" name="language" value="it">
+                    </div>
+                    
+                    <div class="language-option" data-lang="pt">
+                        <div class="language-flag" style="background-image: url('https://flagcdn.com/w40/pt.png')"></div>
+                        <div class="language-info">
+                            <div class="language-name">Portuguese</div>
+                            <div class="language-native">Português</div>
+                        </div>
+                        <input type="radio" name="language" value="pt">
+                    </div>
+                    
+                    <div class="language-option" data-lang="ja">
+                        <div class="language-flag" style="background-image: url('https://flagcdn.com/w40/jp.png')"></div>
+                        <div class="language-info">
+                            <div class="language-name">Japanese</div>
+                            <div class="language-native">日本語</div>
+                        </div>
+                        <input type="radio" name="language" value="ja">
+                    </div>
+                    
+                    <div class="language-option" data-lang="zh">
+                        <div class="language-flag" style="background-image: url('https://flagcdn.com/w40/cn.png')"></div>
+                        <div class="language-info">
+                            <div class="language-name">Chinese</div>
+                            <div class="language-native">中文</div>
+                        </div>
+                        <input type="radio" name="language" value="zh">
+                    </div>
+                </div>
+            </div>
+
+            <div class="preferences-group">
+                <h3>Display Settings</h3>
+                <p>Customize how the application appears on your device.</p>
+                
+                <div class="form-group">
+                    <label for="distance-unit">Distance Unit</label>
+                    <select id="distance-unit" class="form-control">
+                        <option value="km">Kilometers (km)</option>
+                        <option value="mi">Miles (mi)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="currency">Default Currency</label>
+                    <select id="currency" class="form-control">
+                        <option value="USD">US Dollar (USD)</option>
+                        <option value="EUR">Euro (EUR)</option>
+                        <option value="GBP">British Pound (GBP)</option>
+                        <option value="JPY">Japanese Yen (JPY)</option>
+                        <option value="CAD">Canadian Dollar (CAD)</option>
+                        <option value="AUD">Australian Dollar (AUD)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button id="save-preferences" class="btn btn-primary">Save Preferences</button>
+                <button id="reset-preferences" class="btn btn-secondary">Reset to Default</button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <div class="container">
+            <p>&copy; 2023 Travel Companion App</p>
+        </div>
+    </footer>
+
+    <script>
+        // DOM Elements
+        const languageOptions = document.querySelectorAll('.language-option');
+        const languageInputs = document.querySelectorAll('input[name="language"]');
+        const distanceUnitSelect = document.getElementById('distance-unit');
+        const currencySelect = document.getElementById('currency');
+        const savePreferencesBtn = document.getElementById('save-preferences');
+        const resetPreferencesBtn = document.getElementById('reset-preferences');
+        const updateSuccess = document.getElementById('update-success');
+        const updateError = document.getElementById('update-error');
+        const authContainer = document.getElementById('auth-container');
+        
+        // API Base URL
+        const API_BASE_URL = '/api';
+        
+        // Default preferences
+        const defaultPreferences = {
+            language: 'en',
+            distanceUnit: 'km',
+            currency: 'USD'
+        };
+        
+        // Check if user is logged in
+        function checkAuthStatus() {
+            const token = localStorage.getItem('access_token');
+            const user = JSON.parse(localStorage.getItem('user'));
+            
+            if (!token || !user) {
+                // Not logged in, redirect to login page
+                window.location.href = 'auth.html';
+                return;
+            }
+            
+            // Load user preferences
+            loadPreferences();
+            renderAuthUI();
+        }
+        
+        // Get access token from localStorage
+        function getAccessToken() {
+            return localStorage.getItem('access_token');
+        }
+        
+        // Get current user from localStorage
+        function getCurrentUser() {
+            const userJSON = localStorage.getItem('user');
+            if (!userJSON) return null;
+            
+            try {
+                return JSON.parse(userJSON);
+            } catch (error) {
+                console.error('Error parsing user JSON:', error);
+                return null;
+            }
+        }
+        
+        // Check if user is logged in
+        function isLoggedIn() {
+            return getAccessToken() && getCurrentUser();
+        }
+        
+        // Render auth container based on login status
+        function renderAuthUI() {
+            if (isLoggedIn()) {
+                const user = getCurrentUser();
+                const initials = user.name.split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .toUpperCase();
+                
+                authContainer.innerHTML = `
+                    <div class="user-menu">
+                        <button class="user-menu-btn" id="user-menu-btn">
+                            <div class="user-avatar">${initials}</div>
+                            <span>${user.name}</span>
+                        </button>
+                        <div class="user-dropdown" id="user-dropdown">
+                            <a href="profile.html" class="user-dropdown-item profile">Profile</a>
+                            <a href="preferences.html" class="user-dropdown-item preferences">Preferences</a>
+                            <a href="#" class="user-dropdown-item logout">Logout</a>
+                        </div>
+                    </div>
+                `;
+                
+                // Set up event listeners
+                const userMenuBtn = document.getElementById('user-menu-btn');
+                const userDropdown = document.getElementById('user-dropdown');
+                const logoutLink = document.querySelector('.user-dropdown-item.logout');
+                
+                userMenuBtn.addEventListener('click', () => {
+                    userDropdown.classList.toggle('show');
+                });
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+                        userDropdown.classList.remove('show');
+                    }
+                });
+                
+                // Logout functionality
+                logoutLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    logout();
+                });
+            } else {
+                authContainer.innerHTML = `
+                    <div class="auth-links">
+                        <a href="auth.html" class="login">Login</a>
+                        <a href="auth.html" class="register">Register</a>
+                    </div>
+                `;
+            }
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('user');
+            window.location.href = 'index.html';
+        }
+        
+        // Show message
+        function showMessage(element, message, duration = 3000) {
+            element.textContent = message;
+            element.style.display = 'block';
+            
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, duration);
+        }
+        
+        // Load user preferences
+        async function loadPreferences() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/me/preferences`, {
+                    headers: {
+                        'Authorization': `Bearer ${getAccessToken()}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load preferences');
+                }
+                
+                const preferences = await response.json();
+                
+                // Set language
+                if (preferences.language) {
+                    const langInput = document.querySelector(`input[value="${preferences.language}"]`);
+                    if (langInput) {
+                        langInput.checked = true;
+                        selectLanguageOption(preferences.language);
+                    }
+                } else {
+                    // Default to English
+                    document.querySelector('input[value="en"]').checked = true;
+                    selectLanguageOption('en');
+                }
+                
+                // Set distance unit
+                if (preferences.distanceUnit) {
+                    distanceUnitSelect.value = preferences.distanceUnit;
+                }
+                
+                // Set currency
+                if (preferences.currency) {
+                    currencySelect.value = preferences.currency;
+                }
+                
+            } catch (error) {
+                console.error('Error loading preferences:', error);
+                // Set defaults
+                document.querySelector('input[value="en"]').checked = true;
+                selectLanguageOption('en');
+            }
+        }
+        
+        // Select language option
+        function selectLanguageOption(lang) {
+            // Remove selected class from all options
+            languageOptions.forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Add selected class to the chosen option
+            const selectedOption = document.querySelector(`.language-option[data-lang="${lang}"]`);
+            if (selectedOption) {
+                selectedOption.classList.add('selected');
+            }
+        }
+        
+        // Add click event listeners to language options
+        languageOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                const lang = option.getAttribute('data-lang');
+                
+                // Check the radio button
+                document.querySelector(`input[value="${lang}"]`).checked = true;
+                
+                // Select the option
+                selectLanguageOption(lang);
+            });
+        });
+        
+        // Save preferences
+        savePreferencesBtn.addEventListener('click', async () => {
+            const selectedLanguage = document.querySelector('input[name="language"]:checked').value;
+            const distanceUnit = distanceUnitSelect.value;
+            const currency = currencySelect.value;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/me/preferences`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAccessToken()}`
+                    },
+                    body: JSON.stringify({
+                        language: selectedLanguage,
+                        distanceUnit,
+                        currency
+                    })
+                });
+                
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to save preferences');
+                }
+                
+                // Store preferences in localStorage for immediate use
+                localStorage.setItem('userPreferences', JSON.stringify({
+                    language: selectedLanguage,
+                    distanceUnit,
+                    currency
+                }));
+                
+                // Apply language preference to the current page
+                applyLanguagePreference(selectedLanguage);
+                
+                showMessage(updateSuccess, 'Preferences saved successfully! Changes will take effect across all pages.');
+                
+            } catch (error) {
+                console.error('Error saving preferences:', error);
+                showMessage(updateError, error.message || 'Failed to save preferences');
+            }
+        });
+        
+        // Apply language preference to the current page
+        function applyLanguagePreference(language) {
+            document.documentElement.lang = language;
+            
+            // Simple example of language implementation
+            const translationKeys = {
+                'en': {
+                    'preferencesTitle': 'Preferences',
+                    'languageSettings': 'Language Settings',
+                    'displaySettings': 'Display Settings',
+                    'savePreferences': 'Save Preferences',
+                    'resetToDefault': 'Reset to Default'
+                },
+                'es': {
+                    'preferencesTitle': 'Preferencias',
+                    'languageSettings': 'Configuración de idioma',
+                    'displaySettings': 'Configuración de visualización',
+                    'savePreferences': 'Guardar preferencias',
+                    'resetToDefault': 'Restablecer valores predeterminados'
+                },
+                'fr': {
+                    'preferencesTitle': 'Préférences',
+                    'languageSettings': 'Paramètres de langue',
+                    'displaySettings': 'Paramètres d\'affichage',
+                    'savePreferences': 'Enregistrer les préférences',
+                    'resetToDefault': 'Réinitialiser par défaut'
+                },
+                // Add other languages as needed
+            };
+            
+            // Get translations for selected language or fallback to English
+            const translations = translationKeys[language] || translationKeys['en'];
+            
+            try {
+                // Safely update text content with error handling
+                const safeUpdateText = (selector, text) => {
+                    const element = document.querySelector(selector);
+                    if (element) {
+                        element.textContent = text;
+                    } else {
+                        console.warn(`Element not found: ${selector}`);
+                    }
+                };
+                
+                // Update text content based on language
+                safeUpdateText('h1', translations.preferencesTitle);
+                
+                // Get all h3 elements in preference groups
+                const h3Elements = document.querySelectorAll('.preferences-group h3');
+                if (h3Elements.length >= 1) {
+                    h3Elements[0].textContent = translations.languageSettings;
+                }
+                if (h3Elements.length >= 2) {
+                    h3Elements[1].textContent = translations.displaySettings;
+                }
+                
+                // Update button text
+                if (savePreferencesBtn) {
+                    savePreferencesBtn.textContent = translations.savePreferences;
+                }
+                if (resetPreferencesBtn) {
+                    resetPreferencesBtn.textContent = translations.resetToDefault;
+                }
+            } catch (error) {
+                console.error('Error applying language preference:', error);
+            }
+        }
+        
+        // Initialize page with current language preference
+        function initializeLanguagePreference() {
+            // Get stored preferences
+            const storedPrefs = localStorage.getItem('userPreferences');
+            if (storedPrefs) {
+                try {
+                    const prefs = JSON.parse(storedPrefs);
+                    if (prefs.language) {
+                        applyLanguagePreference(prefs.language);
+                    }
+                } catch (e) {
+                    console.error('Error parsing stored preferences:', e);
+                }
+            }
+        }
+        
+        // Reset preferences to default
+        resetPreferencesBtn.addEventListener('click', () => {
+            // Set language to English
+            document.querySelector('input[value="en"]').checked = true;
+            selectLanguageOption('en');
+            
+            // Set distance unit to km
+            distanceUnitSelect.value = 'km';
+            
+            // Set currency to USD
+            currencySelect.value = 'USD';
+        });
+        
+        // Check auth status on page load
+        checkAuthStatus();
+        
+        // Initialize with current language preference
+        initializeLanguagePreference();
+    </script>
+</body>
+</html>

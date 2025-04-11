@@ -7,6 +7,7 @@ let routeLayer = null;
 let drawingRoute = false;
 let newRoutePath = [];
 let newRouteLayer = null;
+let createRouteMap = null; // Variable to track the create route map instance
 
 // Local storage keys
 const ROUTES_STORAGE_KEY = 'travelapp_routes';
@@ -982,13 +983,21 @@ function showAddRouteModal() {
         // Check if map container is visible and has dimensions
         console.log('Map container dimensions:', mapContainer.offsetWidth, mapContainer.offsetHeight);
         
-        const createMap = initCreateRouteMap(center);
+        // Check if there's already a map in this container and remove it
+        if (createRouteMap && createRouteMap._container) {
+            console.log('Removing existing map before creating a new one');
+            createRouteMap.remove();
+            createRouteMap = null;
+        }
+        
+        // Create new map
+        createRouteMap = initCreateRouteMap(center);
         
         // Create a layer group for the new route
-        newRouteLayer = L.layerGroup().addTo(createMap);
+        newRouteLayer = L.layerGroup().addTo(createRouteMap);
         
         // Force a redraw of the map
-        createMap.invalidateSize(true);
+        createRouteMap.invalidateSize(true);
         
         // Clear the drawing status
         document.getElementById('drawing-status').innerHTML = 'Click "Start Drawing" to begin creating your route.';
@@ -997,13 +1006,18 @@ function showAddRouteModal() {
         // Clean up when modal closes
         document.querySelectorAll('.close-modal')[1].addEventListener('click', () => {
             console.log('Closing modal and removing map');
-            createMap.remove();
+            if (createRouteMap) {
+                createRouteMap.remove();
+                createRouteMap = null;
+            }
             drawingRoute = false;
         });
         
         // Add a second invalidateSize after a bit more time
         setTimeout(() => {
-            createMap.invalidateSize(true);
+            if (createRouteMap) {
+                createRouteMap.invalidateSize(true);
+            }
         }, 300);
     }, 500);  // Increased timeout for better reliability
 }
