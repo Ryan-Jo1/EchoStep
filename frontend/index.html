@@ -20,6 +20,12 @@
             cursor: pointer;
             font-size: 1rem;
             padding: 0.5rem;
+            transition: background-color 0.2s;
+        }
+        
+        .user-menu-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
         }
 
         .user-menu-btn .user-avatar {
@@ -35,6 +41,13 @@
             font-weight: bold;
         }
 
+        .user-menu-btn span {
+            display: inline-block !important;
+            white-space: nowrap;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
         .user-dropdown {
             position: absolute;
             top: 100%;
@@ -43,7 +56,7 @@
             border-radius: 4px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             min-width: 180px;
-            z-index: 10;
+            z-index: 100;
             display: none;
         }
 
@@ -57,6 +70,7 @@
             color: #333;
             text-decoration: none;
             border-bottom: 1px solid #f1f1f1;
+            transition: background-color 0.2s;
         }
 
         .user-dropdown-item:hover {
@@ -77,15 +91,31 @@
             text-decoration: none;
             padding: 0.5rem 1rem;
             border-radius: 4px;
+            transition: background-color 0.2s, border-color 0.2s;
         }
 
         .auth-links a.login {
             background-color: transparent;
             border: 1px solid #fff;
         }
+        
+        .auth-links a.login:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
 
         .auth-links a.register {
             background-color: #4a6bea;
+        }
+        
+        .auth-links a.register:hover {
+            background-color: #3a5bd9;
+        }
+        
+        /* Make sure auth container has enough space */
+        #auth-container {
+            min-width: 120px;
+            display: flex;
+            justify-content: flex-end;
         }
 
         /* User preferences in converter */
@@ -112,6 +142,7 @@
             padding: 0.25rem 0.5rem;
             font-size: 0.875rem;
             cursor: pointer;
+            transition: background-color 0.2s;
         }
 
         .save-preference-btn:hover {
@@ -137,16 +168,30 @@
         }
 
         .preference-item button {
-            background-color: #dc3545;
+            background-color: #4a6bea;
             color: white;
             border: none;
             border-radius: 4px;
             padding: 0.25rem 0.5rem;
             font-size: 0.75rem;
             cursor: pointer;
+            transition: background-color 0.2s;
+            margin-left: 0.25rem;
+        }
+        
+        .preference-item .use-pair-btn {
+            background-color: #28a745;
+        }
+        
+        .preference-item .use-pair-btn:hover {
+            background-color: #218838;
         }
 
-        .preference-item button:hover {
+        .preference-item .delete-pair-btn {
+            background-color: #dc3545;
+        }
+        
+        .preference-item .delete-pair-btn:hover {
             background-color: #c82333;
         }
 
@@ -162,6 +207,12 @@
             color: #4a6bea;
             text-decoration: none;
             font-weight: bold;
+            transition: color 0.2s;
+        }
+        
+        .login-prompt a:hover {
+            color: #3a5bd9;
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -294,6 +345,34 @@
         // API Base URL
         const AUTH_API_BASE_URL = '/api';
         
+        // Get currency flag - create reference to the function from script.js
+        if (typeof getCurrencyFlag !== 'function') {
+            function getCurrencyFlag(currencyCode) {
+                currencyCode = currencyCode.toUpperCase();
+                if (currencyCode === 'EUR') return '🇪🇺';
+                if (currencyCode === 'GBP') return '🇬🇧';
+                if (currencyCode === 'USD') return '🇺🇸';
+                if (currencyCode === 'JPY') return '🇯🇵';
+                if (currencyCode === 'CNY') return '🇨🇳';
+                if (currencyCode === 'AUD') return '🇦🇺';
+                if (currencyCode === 'CAD') return '🇨🇦';
+                if (currencyCode === 'CHF') return '🇨🇭';
+                if (currencyCode === 'HKD') return '🇭🇰';
+                if (currencyCode === 'SGD') return '🇸🇬';
+                if (currencyCode === 'SEK') return '🇸🇪';
+                if (currencyCode === 'KRW') return '🇰🇷';
+                if (currencyCode === 'NOK') return '🇳🇴';
+                if (currencyCode === 'NZD') return '🇳🇿';
+                if (currencyCode === 'INR') return '🇮🇳';
+                if (currencyCode === 'MXN') return '🇲🇽';
+                if (currencyCode === 'TWD') return '🇹🇼';
+                if (currencyCode === 'ZAR') return '🇿🇦';
+                if (currencyCode === 'BRL') return '🇧🇷';
+                if (currencyCode === 'DKK') return '🇩🇰';
+                return '🏳️';
+            }
+        }
+        
         // Get user from localStorage
         function getCurrentUser() {
             const userJSON = localStorage.getItem('user');
@@ -330,7 +409,7 @@
                     <div class="user-menu">
                         <button class="user-menu-btn" id="user-menu-btn">
                             <div class="user-avatar">${initials}</div>
-                            <span>${user.name}</span>
+                            <span style="display: inline-block !important; visibility: visible !important;">${user.name}</span>
                         </button>
                         <div class="user-dropdown" id="user-dropdown">
                             <a href="profile.html" class="user-dropdown-item profile">Profile</a>
@@ -340,27 +419,34 @@
                     </div>
                 `;
                 
-                // Set up event listeners
-                const userMenuBtn = document.getElementById('user-menu-btn');
-                const userDropdown = document.getElementById('user-dropdown');
-                const logoutLink = document.querySelector('.user-dropdown-item.logout');
-                
-                userMenuBtn.addEventListener('click', () => {
-                    userDropdown.classList.toggle('show');
-                });
-                
-                // Close dropdown when clicking outside
-                document.addEventListener('click', (e) => {
-                    if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
-                        userDropdown.classList.remove('show');
+                // Set up event listeners after a short delay to ensure elements are in the DOM
+                setTimeout(() => {
+                    const userMenuBtn = document.getElementById('user-menu-btn');
+                    const userDropdown = document.getElementById('user-dropdown');
+                    const logoutLink = document.querySelector('.user-dropdown-item.logout');
+                    
+                    if (userMenuBtn) {
+                        userMenuBtn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            userDropdown.classList.toggle('show');
+                        });
                     }
-                });
-                
-                // Logout functionality
-                logoutLink.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    logout();
-                });
+                    
+                    // Close dropdown when clicking outside
+                    document.addEventListener('click', (e) => {
+                        if (userMenuBtn && userDropdown && !userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+                            userDropdown.classList.remove('show');
+                        }
+                    });
+                    
+                    // Logout functionality
+                    if (logoutLink) {
+                        logoutLink.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            logout();
+                        });
+                    }
+                }, 100);
             } else {
                 authContainer.innerHTML = `
                     <div class="auth-links">
@@ -376,44 +462,85 @@
             if (isLoggedIn()) {
                 fetchUserPreferences()
                     .then(preferences => {
-                        // Get currency preferences
-                        const currencyPrefs = preferences.saved_currency_pairs || [];
+                        // Get currency preferences - ensure it's always an array
+                        const currencyPrefs = preferences && preferences.saved_currency_pairs ? preferences.saved_currency_pairs : [];
+                        
+                        // Get translations for the current language
+                        const storedPrefs = localStorage.getItem('userPreferences');
+                        let translations = { 
+                            savedPairs: 'Saved Currency Pairs',
+                            saveCurrentPair: 'Save Current Pair',
+                            useBtn: 'Use',
+                            deleteBtn: 'Delete',
+                            noSavedPairs: 'No saved currency pairs yet',
+                            to: 'to'
+                        };
+                        
+                        if (storedPrefs) {
+                            try {
+                                const prefs = JSON.parse(storedPrefs);
+                                if (prefs.language) {
+                                    // Get translations for the current language
+                                    const langTranslations = getTranslations(prefs.language);
+                                    if (langTranslations) {
+                                        translations = {
+                                            savedPairs: langTranslations.savedPairs || translations.savedPairs,
+                                            saveCurrentPair: langTranslations.saveCurrentPair || translations.saveCurrentPair,
+                                            useBtn: langTranslations.useBtn || translations.useBtn,
+                                            deleteBtn: langTranslations.deleteBtn || translations.deleteBtn,
+                                            noSavedPairs: langTranslations.noSavedPairs || translations.noSavedPairs,
+                                            to: langTranslations.to || 'to'
+                                        };
+                                    }
+                                }
+                            } catch (e) {
+                                console.error('Error parsing stored preferences:', e);
+                            }
+                        }
                         
                         userPreferencesContainer.innerHTML = `
                             <div class="user-preferences">
                                 <div class="preference-heading">
-                                    <h3>Saved Currency Pairs</h3>
-                                    <button id="save-current-pair" class="save-preference-btn">Save Current Pair</button>
+                                    <h3>${translations.savedPairs}</h3>
+                                    <button id="save-current-pair" class="save-preference-btn">${translations.saveCurrentPair}</button>
                                 </div>
                                 <ul class="preferences-list" id="preferences-list">
                                     ${currencyPrefs.length ? 
                                         currencyPrefs.map((pref, index) => `
                                             <li class="preference-item">
-                                                <span>${getCurrencyFlag(pref.from)} ${pref.from} to ${getCurrencyFlag(pref.to)} ${pref.to}</span>
+                                                <span>${getCurrencyFlag(pref.from)} ${pref.from} ${translations.to} ${getCurrencyFlag(pref.to)} ${pref.to}</span>
                                                 <div>
-                                                    <button data-index="${index}" class="use-pair-btn">Use</button>
-                                                    <button data-index="${index}" class="delete-pair-btn">Delete</button>
+                                                    <button data-index="${index}" class="use-pair-btn">${translations.useBtn}</button>
+                                                    <button data-index="${index}" class="delete-pair-btn">${translations.deleteBtn}</button>
                                                 </div>
                                             </li>
                                         `).join('') :
-                                        '<li class="preference-item">No saved currency pairs yet</li>'
+                                        `<li class="preference-item">${translations.noSavedPairs}</li>`
                                     }
                                 </ul>
                             </div>
                         `;
                         
-                        // Set up event listeners
-                        const saveCurrentPairBtn = document.getElementById('save-current-pair');
-                        saveCurrentPairBtn.addEventListener('click', saveCurrentPair);
-                        
-                        // Attach event listeners to use/delete buttons
-                        document.querySelectorAll('.use-pair-btn').forEach(btn => {
-                            btn.addEventListener('click', useCurrencyPair);
-                        });
-                        
-                        document.querySelectorAll('.delete-pair-btn').forEach(btn => {
-                            btn.addEventListener('click', deleteCurrencyPair);
-                        });
+                        // Set up event listeners with a delay to ensure DOM is updated
+                        setTimeout(() => {
+                            // Save current pair button
+                            const saveCurrentPairBtn = document.getElementById('save-current-pair');
+                            if (saveCurrentPairBtn) {
+                                // Remove any existing event listeners (to prevent duplicates)
+                                const newSaveBtn = saveCurrentPairBtn.cloneNode(true);
+                                saveCurrentPairBtn.parentNode.replaceChild(newSaveBtn, saveCurrentPairBtn);
+                                newSaveBtn.addEventListener('click', saveCurrentPair);
+                            }
+                            
+                            // Attach event listeners to use/delete buttons
+                            document.querySelectorAll('.use-pair-btn').forEach(btn => {
+                                btn.addEventListener('click', useCurrencyPair);
+                            });
+                            
+                            document.querySelectorAll('.delete-pair-btn').forEach(btn => {
+                                btn.addEventListener('click', deleteCurrencyPair);
+                            });
+                        }, 100);
                     })
                     .catch(error => {
                         console.error('Error fetching preferences:', error);
@@ -432,6 +559,55 @@
                     </div>
                 `;
             }
+        }
+        
+        // Helper function to get translations for a specific language
+        function getTranslations(language) {
+            const translationKeys = {
+                'en': {
+                    'converterTitle': 'Currency Converter',
+                    'enterAmount': 'Enter amount',
+                    'convertBtn': 'Convert',
+                    'savedPairs': 'Saved Currency Pairs',
+                    'saveCurrentPair': 'Save Current Pair',
+                    'loginPrompt': 'Login to save your favorite currency pairs and preferences',
+                    'loginRegister': 'Login or Register',
+                    'convertingMsg': 'Converting...',
+                    'lastUpdated': 'Last updated',
+                    'login': 'Login',
+                    'register': 'Register',
+                    'profile': 'Profile',
+                    'preferences': 'Preferences',
+                    'logout': 'Logout',
+                    'noSavedPairs': 'No saved currency pairs yet',
+                    'useBtn': 'Use',
+                    'deleteBtn': 'Delete',
+                    'to': 'to'
+                },
+                'ko': {
+                    'converterTitle': '환율 변환기',
+                    'enterAmount': '금액 입력',
+                    'convertBtn': '변환',
+                    'savedPairs': '저장된 통화 쌍',
+                    'saveCurrentPair': '현재 쌍 저장',
+                    'loginPrompt': '즐겨찾는 통화 쌍과 환경설정을 저장하려면 로그인하세요',
+                    'loginRegister': '로그인 또는 등록',
+                    'convertingMsg': '변환 중...',
+                    'lastUpdated': '마지막 업데이트',
+                    'login': '로그인',
+                    'register': '등록',
+                    'profile': '프로필',
+                    'preferences': '환경설정',
+                    'logout': '로그아웃',
+                    'noSavedPairs': '저장된 통화 쌍이 없습니다',
+                    'useBtn': '사용',
+                    'deleteBtn': '삭제',
+                    'to': '에서'
+                }
+                // Other language translations remain...
+            };
+            
+            return translationKeys[language] || translationKeys['en'];
         }
         
         // Fetch user preferences from API
@@ -463,8 +639,22 @@
             const to = document.getElementById('to-currency').value;
             
             try {
-                const preferences = await fetchUserPreferences();
-                let currencyPairs = preferences.saved_currency_pairs || [];
+                // Check if the user is logged in
+                if (!isLoggedIn()) {
+                    alert('Please log in to save currency pairs.');
+                    return;
+                }
+                
+                // Get current preferences
+                const preferences = await fetchUserPreferences().catch(error => {
+                    console.error('Error fetching preferences:', error);
+                    return { saved_currency_pairs: [] };
+                });
+                
+                // Ensure we have a valid array
+                let currencyPairs = Array.isArray(preferences.saved_currency_pairs) 
+                    ? preferences.saved_currency_pairs 
+                    : [];
                 
                 // Check if pair already exists
                 const pairExists = currencyPairs.some(pair => 
@@ -486,6 +676,9 @@
                 
                 // Re-render preferences
                 renderUserPreferences();
+                
+                // Show success message
+                alert('Currency pair saved successfully!');
                 
             } catch (error) {
                 console.error('Error saving currency pair:', error);
@@ -566,12 +759,9 @@
         
         // Logout function
         function logout() {
-            // Clear local storage
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
             localStorage.removeItem('user');
-            
-            // Reload page
             window.location.reload();
         }
         
@@ -592,30 +782,188 @@
                     if (prefs.language) {
                         document.documentElement.lang = prefs.language;
                         
-                        // Simple example of language implementation
+                        // Comprehensive translations for all supported languages
                         const translationKeys = {
                             'en': {
                                 'converterTitle': 'Currency Converter',
                                 'enterAmount': 'Enter amount',
                                 'convertBtn': 'Convert',
                                 'savedPairs': 'Saved Currency Pairs',
-                                'saveCurrentPair': 'Save Current Pair'
+                                'saveCurrentPair': 'Save Current Pair',
+                                'loginPrompt': 'Login to save your favorite currency pairs and preferences',
+                                'loginRegister': 'Login or Register',
+                                'convertingMsg': 'Converting...',
+                                'lastUpdated': 'Last updated',
+                                'login': 'Login',
+                                'register': 'Register',
+                                'profile': 'Profile',
+                                'preferences': 'Preferences',
+                                'logout': 'Logout',
+                                'noSavedPairs': 'No saved currency pairs yet',
+                                'useBtn': 'Use',
+                                'deleteBtn': 'Delete',
+                                'to': 'to'
                             },
                             'es': {
                                 'converterTitle': 'Conversor de Moneda',
                                 'enterAmount': 'Ingrese cantidad',
                                 'convertBtn': 'Convertir',
                                 'savedPairs': 'Pares de Monedas Guardados',
-                                'saveCurrentPair': 'Guardar Par Actual'
+                                'saveCurrentPair': 'Guardar Par Actual',
+                                'loginPrompt': 'Inicie sesión para guardar sus pares de monedas favoritos y preferencias',
+                                'loginRegister': 'Iniciar sesión o Registrarse',
+                                'convertingMsg': 'Convirtiendo...',
+                                'lastUpdated': 'Última actualización',
+                                'login': 'Iniciar sesión',
+                                'register': 'Registrarse',
+                                'profile': 'Perfil',
+                                'preferences': 'Preferencias',
+                                'logout': 'Cerrar sesión',
+                                'noSavedPairs': 'Aún no hay pares de monedas guardados',
+                                'useBtn': 'Usar',
+                                'deleteBtn': 'Eliminar',
+                                'to': 'a'
                             },
                             'fr': {
                                 'converterTitle': 'Convertisseur de Devises',
                                 'enterAmount': 'Entrez le montant',
                                 'convertBtn': 'Convertir',
                                 'savedPairs': 'Paires de Devises Enregistrées',
-                                'saveCurrentPair': 'Enregistrer la Paire Actuelle'
+                                'saveCurrentPair': 'Enregistrer la Paire Actuelle',
+                                'loginPrompt': 'Connectez-vous pour enregistrer vos paires de devises préférées et vos préférences',
+                                'loginRegister': 'Connexion ou Inscription',
+                                'convertingMsg': 'Conversion en cours...',
+                                'lastUpdated': 'Dernière mise à jour',
+                                'login': 'Connexion',
+                                'register': 'Inscription',
+                                'profile': 'Profil',
+                                'preferences': 'Préférences',
+                                'logout': 'Déconnexion',
+                                'noSavedPairs': 'Pas encore de paires de devises enregistrées',
+                                'useBtn': 'Utiliser',
+                                'deleteBtn': 'Supprimer',
+                                'to': 'à'
+                            },
+                            'de': {
+                                'converterTitle': 'Währungsrechner',
+                                'enterAmount': 'Betrag eingeben',
+                                'convertBtn': 'Umrechnen',
+                                'savedPairs': 'Gespeicherte Währungspaare',
+                                'saveCurrentPair': 'Aktuelles Paar speichern',
+                                'loginPrompt': 'Melden Sie sich an, um Ihre Lieblingswährungspaare und Einstellungen zu speichern',
+                                'loginRegister': 'Anmelden oder Registrieren',
+                                'convertingMsg': 'Umrechnung läuft...',
+                                'lastUpdated': 'Zuletzt aktualisiert',
+                                'login': 'Anmelden',
+                                'register': 'Registrieren',
+                                'profile': 'Profil',
+                                'preferences': 'Einstellungen',
+                                'logout': 'Abmelden',
+                                'noSavedPairs': 'Noch keine Währungspaare gespeichert',
+                                'useBtn': 'Verwenden',
+                                'deleteBtn': 'Löschen',
+                                'to': 'zu'
+                            },
+                            'it': {
+                                'converterTitle': 'Convertitore di Valuta',
+                                'enterAmount': 'Inserisci importo',
+                                'convertBtn': 'Converti',
+                                'savedPairs': 'Coppie di Valute Salvate',
+                                'saveCurrentPair': 'Salva Coppia Attuale',
+                                'loginPrompt': 'Accedi per salvare le tue coppie di valute preferite e le preferenze',
+                                'loginRegister': 'Accedi o Registrati',
+                                'convertingMsg': 'Conversione in corso...',
+                                'lastUpdated': 'Ultimo aggiornamento',
+                                'login': 'Accedi',
+                                'register': 'Registrati',
+                                'profile': 'Profilo',
+                                'preferences': 'Preferenze',
+                                'logout': 'Esci',
+                                'noSavedPairs': 'Nessuna coppia di valute salvata',
+                                'useBtn': 'Usa',
+                                'deleteBtn': 'Elimina',
+                                'to': 'a'
+                            },
+                            'pt': {
+                                'converterTitle': 'Conversor de Moeda',
+                                'enterAmount': 'Insira o valor',
+                                'convertBtn': 'Converter',
+                                'savedPairs': 'Pares de Moedas Salvos',
+                                'saveCurrentPair': 'Salvar Par Atual',
+                                'loginPrompt': 'Faça login para salvar seus pares de moedas favoritos e preferências',
+                                'loginRegister': 'Login ou Registro',
+                                'convertingMsg': 'Convertendo...',
+                                'lastUpdated': 'Última atualização',
+                                'login': 'Entrar',
+                                'register': 'Registrar',
+                                'profile': 'Perfil',
+                                'preferences': 'Preferências',
+                                'logout': 'Sair',
+                                'noSavedPairs': 'Ainda não há pares de moedas salvos',
+                                'useBtn': 'Usar',
+                                'deleteBtn': 'Excluir',
+                                'to': 'para'
+                            },
+                            'ja': {
+                                'converterTitle': '通貨コンバーター',
+                                'enterAmount': '金額を入力',
+                                'convertBtn': '変換',
+                                'savedPairs': '保存された通貨ペア',
+                                'saveCurrentPair': '現在のペアを保存',
+                                'loginPrompt': 'お気に入りの通貨ペアと設定を保存するにはログインしてください',
+                                'loginRegister': 'ログインまたは登録',
+                                'convertingMsg': '変換中...',
+                                'lastUpdated': '最終更新',
+                                'login': 'ログイン',
+                                'register': '登録',
+                                'profile': 'プロフィール',
+                                'preferences': '設定',
+                                'logout': 'ログアウト',
+                                'noSavedPairs': '保存された通貨ペアはまだありません',
+                                'useBtn': '使用',
+                                'deleteBtn': '削除',
+                                'to': 'に'
+                            },
+                            'zh': {
+                                'converterTitle': '货币转换器',
+                                'enterAmount': '输入金额',
+                                'convertBtn': '转换',
+                                'savedPairs': '已保存的货币对',
+                                'saveCurrentPair': '保存当前货币对',
+                                'loginPrompt': '登录以保存您喜爱的货币对和偏好设置',
+                                'loginRegister': '登录或注册',
+                                'convertingMsg': '转换中...',
+                                'lastUpdated': '最后更新',
+                                'login': '登录',
+                                'register': '注册',
+                                'profile': '个人资料',
+                                'preferences': '偏好设置',
+                                'logout': '退出登录',
+                                'noSavedPairs': '暂无已保存的货币对',
+                                'useBtn': '使用',
+                                'deleteBtn': '删除',
+                                'to': '到'
+                            },
+                            'ko': {
+                                'converterTitle': '환율 변환기',
+                                'enterAmount': '금액 입력',
+                                'convertBtn': '변환',
+                                'savedPairs': '저장된 통화 쌍',
+                                'saveCurrentPair': '현재 쌍 저장',
+                                'loginPrompt': '즐겨찾는 통화 쌍과 환경설정을 저장하려면 로그인하세요',
+                                'loginRegister': '로그인 또는 등록',
+                                'convertingMsg': '변환 중...',
+                                'lastUpdated': '마지막 업데이트',
+                                'login': '로그인',
+                                'register': '등록',
+                                'profile': '프로필',
+                                'preferences': '환경설정',
+                                'logout': '로그아웃',
+                                'noSavedPairs': '저장된 통화 쌍이 없습니다',
+                                'useBtn': '사용',
+                                'deleteBtn': '삭제',
+                                'to': '에서'
                             }
-                            // Add other languages as needed
                         };
                         
                         // Get translations for selected language or fallback to English
@@ -654,6 +1002,41 @@
                             convertBtn.textContent = translations.convertBtn;
                         }
                         
+                        // Update loading message
+                        const loadingMsg = document.querySelector('#loading-indicator p');
+                        if (loadingMsg) {
+                            loadingMsg.textContent = translations.convertingMsg;
+                        }
+                        
+                        // Update "Last updated" text
+                        const lastUpdatedElem = document.getElementById('last-updated');
+                        if (lastUpdatedElem && lastUpdatedElem.textContent.startsWith('Last updated')) {
+                            const timeStr = lastUpdatedElem.textContent.replace('Last updated:', '').trim();
+                            lastUpdatedElem.textContent = `${translations.lastUpdated}: ${timeStr}`;
+                        }
+                        
+                        // Update login/register links
+                        const authLinks = document.querySelector('.auth-links');
+                        if (authLinks) {
+                            const loginLink = authLinks.querySelector('.login');
+                            const registerLink = authLinks.querySelector('.register');
+                            
+                            if (loginLink) loginLink.textContent = translations.login;
+                            if (registerLink) registerLink.textContent = translations.register;
+                        }
+                        
+                        // Update user dropdown menu if logged in
+                        const userDropdown = document.getElementById('user-dropdown');
+                        if (userDropdown) {
+                            const profileLink = userDropdown.querySelector('.profile');
+                            const prefsLink = userDropdown.querySelector('.preferences');
+                            const logoutLink = userDropdown.querySelector('.logout');
+                            
+                            if (profileLink) profileLink.textContent = translations.profile;
+                            if (prefsLink) prefsLink.textContent = translations.preferences;
+                            if (logoutLink) logoutLink.textContent = translations.logout;
+                        }
+                        
                         // Update currency pairs section if it exists
                         const savePairBtn = document.getElementById('save-current-pair');
                         if (savePairBtn) {
@@ -664,7 +1047,42 @@
                             if (prefHeading) {
                                 prefHeading.textContent = translations.savedPairs;
                             }
+                            
+                            // Find all preference items and translate the "No saved pairs" text
+                            const preferenceItems = document.querySelectorAll('.preference-item');
+                            preferenceItems.forEach(item => {
+                                if (item.textContent.includes('No saved currency pairs yet')) {
+                                    item.textContent = translations.noSavedPairs;
+                                }
+                            });
+                            
+                            // Update use and delete buttons
+                            document.querySelectorAll('.use-pair-btn').forEach(btn => {
+                                btn.textContent = translations.useBtn;
+                            });
+                            
+                            document.querySelectorAll('.delete-pair-btn').forEach(btn => {
+                                btn.textContent = translations.deleteBtn;
+                            });
                         }
+                        
+                        // Update login prompt
+                        const loginPrompt = document.querySelector('.login-prompt');
+                        if (loginPrompt) {
+                            const promptText = loginPrompt.querySelector('p');
+                            const promptLink = loginPrompt.querySelector('a');
+                            
+                            if (promptText) {
+                                promptText.textContent = translations.loginPrompt;
+                            }
+                            
+                            if (promptLink) {
+                                promptLink.textContent = translations.loginRegister;
+                            }
+                        }
+                        
+                        // Also re-render the user preferences to ensure translations are applied
+                        renderUserPreferences();
                     }
                 } catch (e) {
                     console.error('Error parsing stored preferences:', e);
@@ -672,8 +1090,107 @@
             }
         }
         
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', initAuth);
+        // Document ready
+        document.addEventListener('DOMContentLoaded', () => {
+            // Event listeners
+            const convertBtn = document.getElementById('convert-btn');
+            
+            // Add handleConversion function if it doesn't exist
+            if (typeof handleConversion !== 'function') {
+                window.handleConversion = function() {
+                    convertCurrency();
+                };
+            }
+            
+            if (convertBtn) {
+                convertBtn.addEventListener('click', handleConversion);
+            }
+            
+            const swapBtn = document.getElementById('swap-btn');
+            if (swapBtn) {
+                swapBtn.addEventListener('click', swapCurrencies);
+            }
+            
+            // Add validateAmount function if it doesn't exist (referenced in the event listener)
+            if (typeof validateAmount !== 'function') {
+                window.validateAmount = function(e) {
+                    const amount = parseFloat(e.target.value);
+                    if (isNaN(amount) || amount <= 0) {
+                        e.target.classList.add('invalid');
+                    } else {
+                        e.target.classList.remove('invalid');
+                    }
+                };
+            }
+            
+            const amountInput = document.getElementById('amount');
+            if (amountInput) {
+                amountInput.addEventListener('input', validateAmount);
+            }
+            
+            // Add event listeners for currency selects
+            const fromCurrency = document.getElementById('from-currency');
+            if (fromCurrency) {
+                fromCurrency.addEventListener('change', fetchExchangeRates);
+            }
+            
+            const toCurrency = document.getElementById('to-currency');
+            if (toCurrency) {
+                toCurrency.addEventListener('change', fetchExchangeRates);
+            }
+            
+            // Initialize the currency options if the function exists
+            if (typeof initCurrencyOptions === 'function') {
+                initCurrencyOptions();
+            }
+            
+            // Listen for preference changes
+            window.addEventListener('userPreferencesChanged', (event) => {
+                applyStoredLanguagePreference();
+                renderUserPreferences();
+                
+                // If currency changed, update default currency
+                const details = event.detail;
+                if (details && details.currency) {
+                    // Set the from-currency to the user's preferred currency
+                    const fromCurrency = document.getElementById('from-currency');
+                    if (fromCurrency && fromCurrency.value !== details.currency) {
+                        fromCurrency.value = details.currency;
+                        fetchExchangeRates();
+                    }
+                }
+            });
+            
+            // Ensure save current pair button is functional
+            setTimeout(() => {
+                const saveCurrentPairBtn = document.getElementById('save-current-pair');
+                if (saveCurrentPairBtn) {
+                    console.log('Adding event listener to save-current-pair button');
+                    saveCurrentPairBtn.addEventListener('click', saveCurrentPair);
+                }
+            }, 500);
+            
+            // Initialize
+            initAuth();
+            fetchExchangeRates();
+            
+            // Apply stored currency preference if available
+            const storedPrefs = localStorage.getItem('userPreferences');
+            if (storedPrefs) {
+                try {
+                    const prefs = JSON.parse(storedPrefs);
+                    if (prefs.currency) {
+                        const fromCurrencySelect = document.getElementById('from-currency');
+                        if (fromCurrencySelect && fromCurrencySelect.value !== prefs.currency) {
+                            fromCurrencySelect.value = prefs.currency;
+                            fetchExchangeRates();
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error parsing stored preferences:', e);
+                }
+            }
+        });
     </script>
 </body>
 </html> 

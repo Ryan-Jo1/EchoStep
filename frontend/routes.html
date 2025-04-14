@@ -7,89 +7,6 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <link rel="stylesheet" href="routes.css">
-    <style>
-        .user-menu {
-            position: relative;
-            display: inline-block;
-        }
-
-        .user-menu-btn {
-            display: flex;
-            align-items: center;
-            color: #fff;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-            padding: 0.5rem;
-        }
-
-        .user-menu-btn .user-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background-color: #4a6bea;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 0.5rem;
-            font-weight: bold;
-        }
-
-        .user-dropdown {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background-color: white;
-            border-radius: 4px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            min-width: 180px;
-            z-index: 10;
-            display: none;
-        }
-
-        .user-dropdown.show {
-            display: block;
-        }
-
-        .user-dropdown-item {
-            display: block;
-            padding: 0.75rem 1rem;
-            color: #333;
-            text-decoration: none;
-            border-bottom: 1px solid #f1f1f1;
-        }
-
-        .user-dropdown-item:hover {
-            background-color: #f8f9fa;
-        }
-
-        .user-dropdown-item.logout {
-            color: #dc3545;
-        }
-
-        .auth-links {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .auth-links a {
-            color: #fff;
-            text-decoration: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-        }
-
-        .auth-links a.login {
-            background-color: transparent;
-            border: 1px solid #fff;
-        }
-
-        .auth-links a.register {
-            background-color: #4a6bea;
-        }
-    </style>
 </head>
 <body>
     <header class="app-header">
@@ -303,7 +220,7 @@
 
     <footer class="app-footer">
         <div class="container">
-            <p>&copy; 2023 Travel Companion App</p>
+            <p>&copy; 2025 Travel Companion App</p>
         </div>
     </footer>
 
@@ -420,30 +337,314 @@
                     if (prefs.language) {
                         document.documentElement.lang = prefs.language;
                         
-                        // Simple example of language implementation
+                        // Comprehensive translations for all supported languages
                         const translationKeys = {
                             'en': {
                                 'routesTitle': 'Discover Local Walking Routes',
                                 'routesSubtitle': 'Find popular walks near you or share your own adventures',
                                 'nearMeBtn': 'Find Routes Near Me',
                                 'filterRoutes': 'Filter Routes',
-                                'addRouteBtn': 'Add Your Route'
+                                'addRouteBtn': 'Add Your Route',
+                                'viewDetails': 'View Details',
+                                'delete': 'Delete',
+                                'distance': 'Distance',
+                                'difficulty': 'Difficulty',
+                                'duration': 'Duration',
+                                'rating': 'Rating',
+                                'author': 'Author',
+                                'reviews': 'Reviews',
+                                'all': 'All',
+                                'easy': 'Easy',
+                                'moderate': 'Moderate',
+                                'hard': 'Hard',
+                                'short': 'Short',
+                                'medium': 'Medium',
+                                'long': 'Long',
+                                'closeModal': 'Close',
+                                'startDrawing': 'Start Drawing',
+                                'finishDrawing': 'Finish Drawing',
+                                'clearRoute': 'Clear Route',
+                                'submitRoute': 'Submit Route',
+                                'routeTitle': 'Route Title',
+                                'routeDescription': 'Route Description',
+                                'writeReview': 'Write a Review',
+                                'submitReview': 'Submit Review',
+                                'loading': 'Loading...',
+                                'noRoutes': 'No routes found. Try adjusting your filters or creating a new route.',
+                                'confirmDelete': 'Are you sure you want to delete this route?'
                             },
                             'es': {
                                 'routesTitle': 'Descubre Rutas de Caminata Locales',
                                 'routesSubtitle': 'Encuentra caminatas populares cerca de ti o comparte tus propias aventuras',
                                 'nearMeBtn': 'Encontrar Rutas Cercanas',
                                 'filterRoutes': 'Filtrar Rutas',
-                                'addRouteBtn': 'Agregar Tu Ruta'
+                                'addRouteBtn': 'Agregar Tu Ruta',
+                                'viewDetails': 'Ver Detalles',
+                                'delete': 'Eliminar',
+                                'distance': 'Distancia',
+                                'difficulty': 'Dificultad',
+                                'duration': 'Duración',
+                                'rating': 'Calificación',
+                                'author': 'Autor',
+                                'reviews': 'Reseñas',
+                                'all': 'Todas',
+                                'easy': 'Fácil',
+                                'moderate': 'Moderada',
+                                'hard': 'Difícil',
+                                'short': 'Corta',
+                                'medium': 'Media',
+                                'long': 'Larga',
+                                'closeModal': 'Cerrar',
+                                'startDrawing': 'Comenzar a Dibujar',
+                                'finishDrawing': 'Finalizar Dibujo',
+                                'clearRoute': 'Borrar Ruta',
+                                'submitRoute': 'Enviar Ruta',
+                                'routeTitle': 'Título de la Ruta',
+                                'routeDescription': 'Descripción de la Ruta',
+                                'writeReview': 'Escribir una Reseña',
+                                'submitReview': 'Enviar Reseña',
+                                'loading': 'Cargando...',
+                                'noRoutes': 'No se encontraron rutas. Intenta ajustar tus filtros o crear una nueva ruta.',
+                                'confirmDelete': '¿Estás seguro de que quieres eliminar esta ruta?'
                             },
                             'fr': {
                                 'routesTitle': 'Découvrez des Itinéraires de Marche Locaux',
                                 'routesSubtitle': 'Trouvez des promenades populaires près de chez vous ou partagez vos propres aventures',
                                 'nearMeBtn': 'Trouver des Itinéraires à Proximité',
                                 'filterRoutes': 'Filtrer les Itinéraires',
-                                'addRouteBtn': 'Ajouter Votre Itinéraire'
+                                'addRouteBtn': 'Ajouter Votre Itinéraire',
+                                'viewDetails': 'Voir les Détails',
+                                'delete': 'Supprimer',
+                                'distance': 'Distance',
+                                'difficulty': 'Difficulté',
+                                'duration': 'Durée',
+                                'rating': 'Évaluation',
+                                'author': 'Auteur',
+                                'reviews': 'Avis',
+                                'all': 'Tous',
+                                'easy': 'Facile',
+                                'moderate': 'Modérée',
+                                'hard': 'Difficile',
+                                'short': 'Courte',
+                                'medium': 'Moyenne',
+                                'long': 'Longue',
+                                'closeModal': 'Fermer',
+                                'startDrawing': 'Commencer à Dessiner',
+                                'finishDrawing': 'Terminer le Dessin',
+                                'clearRoute': 'Effacer l\'Itinéraire',
+                                'submitRoute': 'Soumettre l\'Itinéraire',
+                                'routeTitle': 'Titre de l\'Itinéraire',
+                                'routeDescription': 'Description de l\'Itinéraire',
+                                'writeReview': 'Écrire un Avis',
+                                'submitReview': 'Soumettre l\'Avis',
+                                'loading': 'Chargement...',
+                                'noRoutes': 'Aucun itinéraire trouvé. Essayez d\'ajuster vos filtres ou de créer un nouvel itinéraire.',
+                                'confirmDelete': 'Êtes-vous sûr de vouloir supprimer cet itinéraire?'
+                            },
+                            'de': {
+                                'routesTitle': 'Entdecken Sie lokale Wanderrouten',
+                                'routesSubtitle': 'Finden Sie beliebte Spaziergänge in Ihrer Nähe oder teilen Sie Ihre eigenen Abenteuer',
+                                'nearMeBtn': 'Routen in meiner Nähe finden',
+                                'filterRoutes': 'Routen filtern',
+                                'addRouteBtn': 'Ihre Route hinzufügen',
+                                'viewDetails': 'Details anzeigen',
+                                'delete': 'Löschen',
+                                'distance': 'Entfernung',
+                                'difficulty': 'Schwierigkeit',
+                                'duration': 'Dauer',
+                                'rating': 'Bewertung',
+                                'author': 'Autor',
+                                'reviews': 'Bewertungen',
+                                'all': 'Alle',
+                                'easy': 'Leicht',
+                                'moderate': 'Mittel',
+                                'hard': 'Schwer',
+                                'short': 'Kurz',
+                                'medium': 'Mittel',
+                                'long': 'Lang',
+                                'closeModal': 'Schließen',
+                                'startDrawing': 'Zeichnen beginnen',
+                                'finishDrawing': 'Zeichnen beenden',
+                                'clearRoute': 'Route löschen',
+                                'submitRoute': 'Route einreichen',
+                                'routeTitle': 'Routentitel',
+                                'routeDescription': 'Routenbeschreibung',
+                                'writeReview': 'Bewertung schreiben',
+                                'submitReview': 'Bewertung abschicken',
+                                'loading': 'Wird geladen...',
+                                'noRoutes': 'Keine Routen gefunden. Versuchen Sie, Ihre Filter anzupassen oder eine neue Route zu erstellen.',
+                                'confirmDelete': 'Sind Sie sicher, dass Sie diese Route löschen möchten?'
+                            },
+                            'it': {
+                                'routesTitle': 'Scopri Percorsi di Passeggiata Locali',
+                                'routesSubtitle': 'Trova passeggiate popolari vicino a te o condividi le tue avventure',
+                                'nearMeBtn': 'Trova Percorsi Vicini',
+                                'filterRoutes': 'Filtra Percorsi',
+                                'addRouteBtn': 'Aggiungi il Tuo Percorso',
+                                'viewDetails': 'Vedi Dettagli',
+                                'delete': 'Elimina',
+                                'distance': 'Distanza',
+                                'difficulty': 'Difficoltà',
+                                'duration': 'Durata',
+                                'rating': 'Valutazione',
+                                'author': 'Autore',
+                                'reviews': 'Recensioni',
+                                'all': 'Tutti',
+                                'easy': 'Facile',
+                                'moderate': 'Moderata',
+                                'hard': 'Difficile',
+                                'short': 'Breve',
+                                'medium': 'Media',
+                                'long': 'Lunga',
+                                'closeModal': 'Chiudi',
+                                'startDrawing': 'Inizia a Disegnare',
+                                'finishDrawing': 'Termina Disegno',
+                                'clearRoute': 'Cancella Percorso',
+                                'submitRoute': 'Invia Percorso',
+                                'routeTitle': 'Titolo del Percorso',
+                                'routeDescription': 'Descrizione del Percorso',
+                                'writeReview': 'Scrivi una Recensione',
+                                'submitReview': 'Invia Recensione',
+                                'loading': 'Caricamento...',
+                                'noRoutes': 'Nessun percorso trovato. Prova a modificare i filtri o a creare un nuovo percorso.',
+                                'confirmDelete': 'Sei sicuro di voler eliminare questo percorso?'
+                            },
+                            'pt': {
+                                'routesTitle': 'Descubra Rotas de Caminhada Locais',
+                                'routesSubtitle': 'Encontre caminhadas populares perto de você ou compartilhe suas próprias aventuras',
+                                'nearMeBtn': 'Encontrar Rotas Próximas',
+                                'filterRoutes': 'Filtrar Rotas',
+                                'addRouteBtn': 'Adicionar Sua Rota',
+                                'viewDetails': 'Ver Detalhes',
+                                'delete': 'Excluir',
+                                'distance': 'Distância',
+                                'difficulty': 'Dificuldade',
+                                'duration': 'Duração',
+                                'rating': 'Avaliação',
+                                'author': 'Autor',
+                                'reviews': 'Avaliações',
+                                'all': 'Todas',
+                                'easy': 'Fácil',
+                                'moderate': 'Moderada',
+                                'hard': 'Difícil',
+                                'short': 'Curta',
+                                'medium': 'Média',
+                                'long': 'Longa',
+                                'closeModal': 'Fechar',
+                                'startDrawing': 'Começar a Desenhar',
+                                'finishDrawing': 'Finalizar Desenho',
+                                'clearRoute': 'Limpar Rota',
+                                'submitRoute': 'Enviar Rota',
+                                'routeTitle': 'Título da Rota',
+                                'routeDescription': 'Descrição da Rota',
+                                'writeReview': 'Escrever uma Avaliação',
+                                'submitReview': 'Enviar Avaliação',
+                                'loading': 'Carregando...',
+                                'noRoutes': 'Nenhuma rota encontrada. Tente ajustar seus filtros ou criar uma nova rota.',
+                                'confirmDelete': 'Tem certeza que deseja excluir esta rota?'
+                            },
+                            'ja': {
+                                'routesTitle': '地元のウォーキングルートを発見',
+                                'routesSubtitle': '人気のウォーキングコースを見つけたり、自分の冒険を共有しましょう',
+                                'nearMeBtn': '近くのルートを探す',
+                                'filterRoutes': 'ルートをフィルタリング',
+                                'addRouteBtn': 'ルートを追加',
+                                'viewDetails': '詳細を見る',
+                                'delete': '削除',
+                                'distance': '距離',
+                                'difficulty': '難易度',
+                                'duration': '時間',
+                                'rating': '評価',
+                                'author': '作成者',
+                                'reviews': 'レビュー',
+                                'all': 'すべて',
+                                'easy': '簡単',
+                                'moderate': '普通',
+                                'hard': '難しい',
+                                'short': '短い',
+                                'medium': '中程度',
+                                'long': '長い',
+                                'closeModal': '閉じる',
+                                'startDrawing': '描画開始',
+                                'finishDrawing': '描画完了',
+                                'clearRoute': 'ルートをクリア',
+                                'submitRoute': 'ルートを送信',
+                                'routeTitle': 'ルートのタイトル',
+                                'routeDescription': 'ルートの説明',
+                                'writeReview': 'レビューを書く',
+                                'submitReview': 'レビューを送信',
+                                'loading': '読み込み中...',
+                                'noRoutes': 'ルートが見つかりません。フィルターを調整するか、新しいルートを作成してみてください。',
+                                'confirmDelete': 'このルートを削除してもよろしいですか？'
+                            },
+                            'zh': {
+                                'routesTitle': '发现当地步行路线',
+                                'routesSubtitle': '找到您附近的热门步行路线或分享您自己的冒险',
+                                'nearMeBtn': '查找附近的路线',
+                                'filterRoutes': '筛选路线',
+                                'addRouteBtn': '添加您的路线',
+                                'viewDetails': '查看详情',
+                                'delete': '删除',
+                                'distance': '距离',
+                                'difficulty': '难度',
+                                'duration': '时长',
+                                'rating': '评分',
+                                'author': '作者',
+                                'reviews': '评论',
+                                'all': '全部',
+                                'easy': '简单',
+                                'moderate': '中等',
+                                'hard': '困难',
+                                'short': '短程',
+                                'medium': '中程',
+                                'long': '长程',
+                                'closeModal': '关闭',
+                                'startDrawing': '开始绘制',
+                                'finishDrawing': '完成绘制',
+                                'clearRoute': '清除路线',
+                                'submitRoute': '提交路线',
+                                'routeTitle': '路线标题',
+                                'routeDescription': '路线描述',
+                                'writeReview': '写评论',
+                                'submitReview': '提交评论',
+                                'loading': '加载中...',
+                                'noRoutes': '未找到路线。尝试调整筛选条件或创建新路线。',
+                                'confirmDelete': '您确定要删除此路线吗？'
+                            },
+                            'ko': {
+                                'routesTitle': '주변 경로 탐색',
+                                'routesSubtitle': '주변의 인기 있는 산책로를 찾거나 직접 경험을 공유하세요',
+                                'nearMeBtn': '내 주변 경로 찾기',
+                                'filterRoutes': '경로 필터링',
+                                'addRouteBtn': '내 경로 추가',
+                                'viewDetails': '상세 보기',
+                                'delete': '삭제',
+                                'distance': '거리',
+                                'difficulty': '난이도',
+                                'duration': '소요 시간',
+                                'rating': '평점',
+                                'author': '작성자',
+                                'reviews': '리뷰',
+                                'all': '전체',
+                                'easy': '쉬움',
+                                'moderate': '보통',
+                                'hard': '어려움',
+                                'short': '짧은 거리',
+                                'medium': '중간 거리',
+                                'long': '긴 거리',
+                                'closeModal': '닫기',
+                                'startDrawing': '그리기 시작',
+                                'finishDrawing': '그리기 완료',
+                                'clearRoute': '경로 지우기',
+                                'submitRoute': '경로 제출',
+                                'routeTitle': '경로 제목',
+                                'routeDescription': '경로 설명',
+                                'writeReview': '리뷰 작성',
+                                'submitReview': '리뷰 제출',
+                                'loading': '로딩 중...',
+                                'noRoutes': '경로를 찾을 수 없습니다. 필터를 조정하거나 새 경로를 생성해 보세요.',
+                                'confirmDelete': '이 경로를 삭제하시겠습니까?'
                             }
-                            // Add other languages as needed
                         };
                         
                         // Get translations for selected language or fallback to English

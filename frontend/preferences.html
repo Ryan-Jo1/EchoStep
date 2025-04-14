@@ -252,6 +252,15 @@
                         </div>
                         <input type="radio" name="language" value="zh">
                     </div>
+                    
+                    <div class="language-option" data-lang="ko">
+                        <div class="language-flag" style="background-image: url('https://flagcdn.com/w40/kr.png')"></div>
+                        <div class="language-info">
+                            <div class="language-name">Korean</div>
+                            <div class="language-native">한국어</div>
+                        </div>
+                        <input type="radio" name="language" value="ko">
+                    </div>
                 </div>
             </div>
 
@@ -289,7 +298,7 @@
 
     <footer class="app-footer">
         <div class="container">
-            <p>&copy; 2023 Travel Companion App</p>
+            <p>&copy; 2025 Travel Companion App</p>
         </div>
     </footer>
 
@@ -524,6 +533,10 @@
                     throw new Error(data.error || 'Failed to save preferences');
                 }
                 
+                // Check if distance unit changed
+                const currentPrefs = JSON.parse(localStorage.getItem('userPreferences') || '{}');
+                const distanceUnitChanged = currentPrefs.distanceUnit !== distanceUnit;
+                
                 // Store preferences in localStorage for immediate use
                 localStorage.setItem('userPreferences', JSON.stringify({
                     language: selectedLanguage,
@@ -533,6 +546,16 @@
                 
                 // Apply language preference to the current page
                 applyLanguagePreference(selectedLanguage);
+                
+                // Dispatch a custom event to notify other parts of the application
+                window.dispatchEvent(new CustomEvent('userPreferencesChanged', { 
+                    detail: { 
+                        language: selectedLanguage,
+                        distanceUnit,
+                        currency,
+                        distanceUnitChanged
+                    } 
+                }));
                 
                 showMessage(updateSuccess, 'Preferences saved successfully! Changes will take effect across all pages.');
                 
@@ -546,30 +569,107 @@
         function applyLanguagePreference(language) {
             document.documentElement.lang = language;
             
-            // Simple example of language implementation
+            // Comprehensive translations for all supported languages
             const translationKeys = {
                 'en': {
                     'preferencesTitle': 'Preferences',
                     'languageSettings': 'Language Settings',
+                    'languageDescription': 'Choose your preferred language for the application. This will affect the user interface and content.',
                     'displaySettings': 'Display Settings',
+                    'displayDescription': 'Customize how the application appears on your device.',
+                    'distanceUnitLabel': 'Distance Unit',
+                    'defaultCurrencyLabel': 'Default Currency',
                     'savePreferences': 'Save Preferences',
                     'resetToDefault': 'Reset to Default'
                 },
                 'es': {
                     'preferencesTitle': 'Preferencias',
                     'languageSettings': 'Configuración de idioma',
+                    'languageDescription': 'Elige tu idioma preferido para la aplicación. Esto afectará la interfaz de usuario y el contenido.',
                     'displaySettings': 'Configuración de visualización',
+                    'displayDescription': 'Personaliza cómo aparece la aplicación en tu dispositivo.',
+                    'distanceUnitLabel': 'Unidad de distancia',
+                    'defaultCurrencyLabel': 'Moneda predeterminada',
                     'savePreferences': 'Guardar preferencias',
                     'resetToDefault': 'Restablecer valores predeterminados'
                 },
                 'fr': {
                     'preferencesTitle': 'Préférences',
                     'languageSettings': 'Paramètres de langue',
+                    'languageDescription': 'Choisissez votre langue préférée pour l\'application. Cela affectera l\'interface utilisateur et le contenu.',
                     'displaySettings': 'Paramètres d\'affichage',
+                    'displayDescription': 'Personnalisez l\'apparence de l\'application sur votre appareil.',
+                    'distanceUnitLabel': 'Unité de distance',
+                    'defaultCurrencyLabel': 'Devise par défaut',
                     'savePreferences': 'Enregistrer les préférences',
                     'resetToDefault': 'Réinitialiser par défaut'
                 },
-                // Add other languages as needed
+                'de': {
+                    'preferencesTitle': 'Einstellungen',
+                    'languageSettings': 'Spracheinstellungen',
+                    'languageDescription': 'Wählen Sie Ihre bevorzugte Sprache für die Anwendung. Dies wirkt sich auf die Benutzeroberfläche und den Inhalt aus.',
+                    'displaySettings': 'Anzeigeeinstellungen',
+                    'displayDescription': 'Passen Sie an, wie die Anwendung auf Ihrem Gerät angezeigt wird.',
+                    'distanceUnitLabel': 'Entfernungseinheit',
+                    'defaultCurrencyLabel': 'Standardwährung',
+                    'savePreferences': 'Einstellungen speichern',
+                    'resetToDefault': 'Auf Standard zurücksetzen'
+                },
+                'it': {
+                    'preferencesTitle': 'Preferenze',
+                    'languageSettings': 'Impostazioni della lingua',
+                    'languageDescription': 'Scegli la tua lingua preferita per l\'applicazione. Questo influenzerà l\'interfaccia utente e i contenuti.',
+                    'displaySettings': 'Impostazioni di visualizzazione',
+                    'displayDescription': 'Personalizza come l\'applicazione appare sul tuo dispositivo.',
+                    'distanceUnitLabel': 'Unità di distanza',
+                    'defaultCurrencyLabel': 'Valuta predefinita',
+                    'savePreferences': 'Salva preferenze',
+                    'resetToDefault': 'Ripristina valori predefiniti'
+                },
+                'pt': {
+                    'preferencesTitle': 'Preferências',
+                    'languageSettings': 'Configurações de idioma',
+                    'languageDescription': 'Escolha seu idioma preferido para o aplicativo. Isso afetará a interface do usuário e o conteúdo.',
+                    'displaySettings': 'Configurações de exibição',
+                    'displayDescription': 'Personalize como o aplicativo aparece no seu dispositivo.',
+                    'distanceUnitLabel': 'Unidade de distância',
+                    'defaultCurrencyLabel': 'Moeda padrão',
+                    'savePreferences': 'Salvar preferências',
+                    'resetToDefault': 'Redefinir para o padrão'
+                },
+                'ja': {
+                    'preferencesTitle': '設定',
+                    'languageSettings': '言語設定',
+                    'languageDescription': 'アプリケーションの希望言語を選択してください。ユーザーインターフェースとコンテンツに影響します。',
+                    'displaySettings': '表示設定',
+                    'displayDescription': 'デバイスでのアプリケーションの表示方法をカスタマイズします。',
+                    'distanceUnitLabel': '距離単位',
+                    'defaultCurrencyLabel': 'デフォルト通貨',
+                    'savePreferences': '設定を保存',
+                    'resetToDefault': 'デフォルトにリセット'
+                },
+                'zh': {
+                    'preferencesTitle': '偏好设置',
+                    'languageSettings': '语言设置',
+                    'languageDescription': '选择您喜欢的应用程序语言。这将影响用户界面和内容。',
+                    'displaySettings': '显示设置',
+                    'displayDescription': '自定义应用程序在您设备上的显示方式。',
+                    'distanceUnitLabel': '距离单位',
+                    'defaultCurrencyLabel': '默认货币',
+                    'savePreferences': '保存设置',
+                    'resetToDefault': '重置为默认值'
+                },
+                'ko': {
+                    'preferencesTitle': '환경설정',
+                    'languageSettings': '언어 설정',
+                    'languageDescription': '애플리케이션에 사용할 언어를 선택하세요. 이는 사용자 인터페이스와 콘텐츠에 영향을 미칩니다.',
+                    'displaySettings': '표시 설정',
+                    'displayDescription': '기기에서 애플리케이션이 표시되는 방식을 사용자 지정합니다.',
+                    'distanceUnitLabel': '거리 단위',
+                    'defaultCurrencyLabel': '기본 통화',
+                    'savePreferences': '설정 저장',
+                    'resetToDefault': '기본값으로 재설정'
+                }
             };
             
             // Get translations for selected language or fallback to English
@@ -586,19 +686,37 @@
                     }
                 };
                 
-                // Update text content based on language
+                // Update main title
                 safeUpdateText('h1', translations.preferencesTitle);
                 
-                // Get all h3 elements in preference groups
-                const h3Elements = document.querySelectorAll('.preferences-group h3');
-                if (h3Elements.length >= 1) {
-                    h3Elements[0].textContent = translations.languageSettings;
-                }
-                if (h3Elements.length >= 2) {
-                    h3Elements[1].textContent = translations.displaySettings;
+                // Update preference group headings and descriptions
+                const preferenceGroups = document.querySelectorAll('.preferences-group');
+                if (preferenceGroups.length >= 1) {
+                    const languageGroup = preferenceGroups[0];
+                    const languageHeading = languageGroup.querySelector('h3');
+                    const languageDesc = languageGroup.querySelector('p');
+                    
+                    if (languageHeading) languageHeading.textContent = translations.languageSettings;
+                    if (languageDesc) languageDesc.textContent = translations.languageDescription;
                 }
                 
-                // Update button text
+                if (preferenceGroups.length >= 2) {
+                    const displayGroup = preferenceGroups[1];
+                    const displayHeading = displayGroup.querySelector('h3');
+                    const displayDesc = displayGroup.querySelector('p');
+                    
+                    if (displayHeading) displayHeading.textContent = translations.displaySettings;
+                    if (displayDesc) displayDesc.textContent = translations.displayDescription;
+                }
+                
+                // Update form labels
+                const distanceLabel = document.querySelector('label[for="distance-unit"]');
+                if (distanceLabel) distanceLabel.textContent = translations.distanceUnitLabel;
+                
+                const currencyLabel = document.querySelector('label[for="currency"]');
+                if (currencyLabel) currencyLabel.textContent = translations.defaultCurrencyLabel;
+                
+                // Update buttons
                 if (savePreferencesBtn) {
                     savePreferencesBtn.textContent = translations.savePreferences;
                 }

@@ -9,8 +9,51 @@ let newRoutePath = [];
 let newRouteLayer = null;
 let createRouteMap = null; // Variable to track the create route map instance
 
+// User preferences
+let userDistanceUnit = 'km'; // Default to kilometers
+let userCurrency = 'USD'; // Default currency
+
 // Local storage keys
 const ROUTES_STORAGE_KEY = 'travelapp_routes';
+
+// Load user preferences from localStorage
+function loadUserPreferences() {
+    const storedPrefs = localStorage.getItem('userPreferences');
+    if (storedPrefs) {
+        const prefs = JSON.parse(storedPrefs);
+        
+        const previousUnit = userDistanceUnit;
+        
+        if (prefs.distanceUnit) {
+            userDistanceUnit = prefs.distanceUnit;
+            console.log('Using distance unit from preferences:', userDistanceUnit);
+            
+            // If the unit has changed, update all displayed routes
+            if (previousUnit !== userDistanceUnit && routesData.length > 0) {
+                // Update all displayed routes with the new unit
+                displayRoutes(routesData);
+                
+                // Update map popups if the map and routeLayer exist
+                if (map && routeLayer) {
+                    // Remove existing route layer
+                    map.removeLayer(routeLayer);
+                    // Add routes back with updated distance units
+                    addRoutesToMap(routesData);
+                }
+                
+                // If detail modal is open, update the displayed distance
+                if (activeRoute && document.getElementById('route-detail-modal').classList.contains('show')) {
+                    document.getElementById('route-distance').innerText = formatDistance(activeRoute.distance);
+                }
+            }
+        }
+        
+        if (prefs.currency) {
+            userCurrency = prefs.currency;
+            console.log('Using currency from preferences:', userCurrency);
+        }
+    }
+}
 
 // Functions for route persistence
 function saveRoutesToLocalStorage() {
@@ -33,6 +76,34 @@ function loadRoutesFromLocalStorage() {
     return false;
 }
 
+// Convert distance based on user preference and format for display
+// This function both converts between km and miles and formats with the appropriate unit label
+// Used throughout the app to display distances consistently based on user preferences
+function formatDistance(distanceKm) {
+    if (userDistanceUnit === 'mi') {
+        // Convert km to miles (1 km = 0.621371 miles)
+        const miles = distanceKm * 0.621371;
+        return `${miles.toFixed(1)} mi`;
+    } else {
+        return `${distanceKm.toFixed(1)} km`;
+    }
+}
+
+// Convert distance for calculations (returns numeric value only)
+function convertDistance(distanceKm) {
+    if (userDistanceUnit === 'mi') {
+        return distanceKm * 0.621371; // Convert to miles
+    } else {
+        return distanceKm; // Keep as km
+    }
+}
+
+// Get distance with unit label
+function getDistanceWithUnit(distanceKm) {
+    const convertedValue = convertDistance(distanceKm);
+    return `${convertedValue.toFixed(1)} ${userDistanceUnit === 'mi' ? 'mi' : 'km'}`;
+}
+
 // DOM Elements
 const locateBtn = document.getElementById('locate-me');
 const locationStatus = document.getElementById('location-status');
@@ -46,6 +117,9 @@ const modalCloseButtons = document.querySelectorAll('.close-modal');
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', () => {
+    // Load user preferences first
+    loadUserPreferences();
+    
     // Initialize map with a default location
     initMap();
     
@@ -124,6 +198,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
+    // Listen for preference changes event
+    window.addEventListener('userPreferencesChanged', () => {
+        loadUserPreferences();
+    });
+    
     // Load routes from localStorage when the app starts
     loadRoutesFromLocalStorage();
     
@@ -186,8 +265,20 @@ function initDetailMap(center, pathCoordinates) {
 function initCreateRouteMap(center) {
     // Ensure we have valid coordinates
     if (!center || !Array.isArray(center) || center.length !== 2) {
-        center = [48.856614, 2.3522219]; // Default to Paris if no valid center
-        console.log('Using default center coordinates:', center);
+        // Try to use stored user location from localStorage
+        const storedLocation = localStorage.getItem('userLocation');
+        if (storedLocation) {
+            try {
+                center = JSON.parse(storedLocation);
+                console.log('Using stored user location:', center);
+            } catch (e) {
+                console.error('Failed to parse stored location:', e);
+                center = [48.856614, 2.3522219]; // Default to Paris if parsing fails
+            }
+        } else {
+            center = [48.856614, 2.3522219]; // Default to Paris if no valid center
+            console.log('Using default center coordinates:', center);
+        }
     }
     
     // Create the map
@@ -255,6 +346,9 @@ function getUserLocation() {
             (position) => {
                 const { latitude, longitude } = position.coords;
                 userLocation = [latitude, longitude];
+                
+                // Store the location in localStorage for persistence
+                localStorage.setItem('userLocation', JSON.stringify(userLocation));
                 
                 // Update map
                 map.setView(userLocation, 14);
@@ -369,9 +463,13 @@ async function fetchNearbyRoutes(lat, lng) {
     routesLoading.style.display = 'flex';
     
     try {
-        const response = await fetch(`/api/routes/nearby?lat=${lat}&lng=${lng}`);
-        if (!response.ok) {
-            throw new Error('Failed to fetch routes');
+        // Use localhost URL with correct port
+        const response = await fetch(`http://localhost:5000/api/routes/nearby?lat=${lat}&lng=${lng}`);
+        
+        // Check for non-JSON responses or server errors
+        const contentType = response.headers.get('content-type');
+        if (!response.ok || !contentType || !contentType.includes('application/json')) {
+            throw new Error('Failed to fetch routes or invalid response format');
         }
         
         const data = await response.json();
@@ -617,118 +715,91 @@ function getRandomReviewText() {
 
 // Display routes in the sidebar
 function displayRoutes(routes) {
+    // Clear the current routes list
+    routesList.innerHTML = '';
+    routesLoading.style.display = 'none';
+    
+    // Get stored preferences
+    const storedPrefs = localStorage.getItem('userPreferences');
+    const prefs = storedPrefs ? JSON.parse(storedPrefs) : {};
+    
+    // Fetch translations
+    const translationKeys = getTranslationKeys();
+    const translations = prefs.language && translationKeys[prefs.language] ? 
+        translationKeys[prefs.language] : translationKeys['en'];
+    
+    // If no routes, show message
     if (routes.length === 0) {
-        routesList.innerHTML = `
-            <div class="empty-state">
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-                <p>No routes found in this area.</p>
-                <p class="empty-state-info">Routes are created by users like you! Click the "Add Your Route" button below to create the first route.</p>
-                <button id="empty-add-route-btn" class="primary-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                        <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
-                    </svg>
-                    Add Your Route
-                </button>
-            </div>
-        `;
-        
-        // Add click event for the empty state add button
-        document.getElementById('empty-add-route-btn').addEventListener('click', showAddRouteModal);
+        routesList.innerHTML = `<div class="no-routes">${translations.noRoutes}</div>`;
         return;
     }
     
-    // Sort routes by rating (highest first)
-    routes.sort((a, b) => b.rating - a.rating);
-    
-    let routesHTML = '';
-    
-    // Get current user for checking if route belongs to user
+    // Get current user
     const currentUser = getCurrentUser();
-    const currentUsername = currentUser ? currentUser.name : null;
     
+    // Create a route card for each route
     routes.forEach(route => {
-        // Generate star rating HTML
-        const ratingStars = generateStarRating(route.rating);
+        // Check if this is the user's own route
+        const isUserRoute = (route.user_id === 'current-user') || 
+                            (currentUser && route.author === currentUser.name) ||
+                            (currentUser && route.author_name === currentUser.name);
         
-        // Check if this route belongs to the current user
-        const isUserRoute = currentUsername && route.author === currentUsername;
+        const formattedDistance = formatDistance(route.distance);
+        const formattedDate = formatDate(new Date(route.created_at));
+        const stars = generateStarRating(route.rating);
         
-        // Add user route class and delete button if it's the user's route
-        const userRouteClass = isUserRoute ? 'user-route' : '';
-        const deleteButton = isUserRoute ? 
-            `<button class="delete-route-btn" data-route-id="${route.id}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-                    <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
-                </svg>
-            </button>` : '';
+        const routeCard = document.createElement('div');
+        routeCard.className = 'route-card';
+        routeCard.setAttribute('data-route-id', route.id);
         
-        routesHTML += `
-            <div class="route-card ${userRouteClass}" data-route-id="${route.id}">
-                <div class="route-card-header">
-                    <h4>${route.title}</h4>
-                    ${deleteButton}
+        // Format distance to user if available
+        let distanceToUserText = '';
+        if (route.distance_to_user !== undefined) {
+            distanceToUserText = `<span class="distance-badge">${formatDistance(route.distance_to_user)} from you</span>`;
+        }
+        
+        // Set the route card HTML
+        routeCard.innerHTML = `
+            <div class="route-info">
+                <h3>${route.title}</h3>
+                <div class="route-meta">
+                    <span class="route-distance">${formattedDistance}</span>
+                    <span class="route-difficulty ${route.difficulty?.toLowerCase()}">${route.difficulty}</span>
+                    ${distanceToUserText}
                 </div>
-                <div class="route-card-stats">
-                    <div class="stat">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/>
-                        </svg>
-                        ${route.distance} km
-                    </div>
-                    <div class="stat">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z"/>
-                            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/>
-                        </svg>
-                        ${route.duration} min
-                    </div>
-                    <div class="stat">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828l.645-1.937z"/>
-                        </svg>
-                        ${route.difficulty.charAt(0).toUpperCase() + route.difficulty.slice(1)}
-                    </div>
-                </div>
-                <div class="route-card-rating">
-                    ${ratingStars}
-                    <span>(${route.reviews ? route.reviews.length : 0})</span>
-                </div>
-                <div class="route-card-footer">
-                    <span>By ${route.author}</span>
-                    <span>${formatDate(route.createdAt)}</span>
+                <div class="route-rating">${stars}</div>
+                <p class="route-description">${route.description}</p>
+                <div class="route-footer">
+                    <span class="route-author">${translations.author}: ${route.author_name || route.author}</span>
+                    <span class="route-date">${formattedDate}</span>
                 </div>
             </div>
+            ${isUserRoute ? `<div class="route-actions">
+                <button class="delete-route-btn" data-route-id="${route.id}">${translations.delete}</button>
+            </div>` : ''}
         `;
-    });
-    
-    routesList.innerHTML = routesHTML;
-    
-    // Add click event listeners to the route cards
-    document.querySelectorAll('.route-card').forEach(card => {
-        card.addEventListener('click', (e) => {
-            // Don't open route details if clicking on delete button
-            if (e.target.closest('.delete-route-btn')) {
-                return;
-            }
-            
-            const routeId = parseInt(card.dataset.routeId);
-            const route = routesData.find(r => r.id === routeId);
-            if (route) {
+        
+        // Add the route card to the list
+        routesList.appendChild(routeCard);
+        
+        // Make the entire card clickable to show route details
+        routeCard.addEventListener('click', (e) => {
+            // Don't trigger if clicking the delete button
+            if (!e.target.classList.contains('delete-route-btn')) {
                 showRouteDetails(route);
             }
         });
-    });
-    
-    // Add delete button event listeners
-    document.querySelectorAll('.delete-route-btn').forEach(button => {
-        button.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent route card click
-            const routeId = parseInt(button.dataset.routeId);
-            deleteRoute(routeId);
-        });
+        
+        // Add event listener for delete button if it exists
+        const deleteBtn = routeCard.querySelector('.delete-route-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm(translations.confirmDelete)) {
+                    deleteRoute(route.id);
+                }
+            });
+        }
     });
 }
 
@@ -798,7 +869,7 @@ function addRoutesToMap(routes) {
         // Add popup with basic info
         polyline.bindPopup(`
             <strong>${route.title}</strong><br>
-            Distance: ${route.distance} km<br>
+            Distance: ${formatDistance(route.distance)}<br>
             Duration: ${route.duration} min<br>
             Difficulty: ${route.difficulty.charAt(0).toUpperCase() + route.difficulty.slice(1)}
         `);
@@ -841,13 +912,53 @@ function getDifficultyColor(difficulty) {
 
 // Show route details in modal
 function showRouteDetails(route) {
+    // Load user preferences before showing details
+    loadUserPreferences();
+    
     activeRoute = route;
     
-    // Set modal title
-    document.getElementById('modal-route-title').innerText = route.title;
+    // Get current user and translations
+    const currentUser = getCurrentUser();
+    const storedPrefs = localStorage.getItem('userPreferences');
+    const prefs = storedPrefs ? JSON.parse(storedPrefs) : {};
+    const translationKeys = getTranslationKeys();
+    const translations = prefs.language && translationKeys[prefs.language] ? 
+        translationKeys[prefs.language] : translationKeys['en'];
     
-    // Set route stats
-    document.getElementById('route-distance').innerText = `${route.distance} km`;
+    // Check if this is the user's own route
+    const isUserRoute = (route.user_id === 'current-user') || 
+                        (currentUser && route.author === currentUser.name) ||
+                        (currentUser && route.author_name === currentUser.name);
+    
+    // Set modal title with delete button for user's own routes
+    const modalHeader = document.querySelector('#route-detail-modal .modal-header');
+    modalHeader.innerHTML = `
+        <h2 id="modal-route-title">${route.title}</h2>
+        ${isUserRoute ? 
+            `<button class="delete-detail-btn" data-route-id="${route.id}">${translations.delete}</button>` : 
+            ''}
+        <button class="close-modal">&times;</button>
+    `;
+    
+    // Add event listener to delete button if it exists
+    const deleteDetailBtn = modalHeader.querySelector('.delete-detail-btn');
+    if (deleteDetailBtn) {
+        deleteDetailBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm(translations.confirmDelete)) {
+                deleteRoute(route.id);
+                routeDetailModal.classList.remove('show');
+            }
+        });
+    }
+    
+    // Re-add event listener for close button
+    modalHeader.querySelector('.close-modal').addEventListener('click', () => {
+        routeDetailModal.classList.remove('show');
+    });
+    
+    // Set route stats with formatted distance
+    document.getElementById('route-distance').innerText = formatDistance(route.distance);
     document.getElementById('route-duration').innerText = `${route.duration} min`;
     document.getElementById('route-difficulty').innerText = route.difficulty.charAt(0).toUpperCase() + route.difficulty.slice(1);
     
@@ -855,7 +966,7 @@ function showRouteDetails(route) {
     document.getElementById('route-description').innerText = route.description;
     
     // Set author
-    document.getElementById('route-author-name').innerText = route.author;
+    document.getElementById('route-author-name').innerText = route.author_name || route.author;
     
     // Set rating stars
     document.getElementById('route-rating').innerHTML = generateStarRating(route.rating);
@@ -868,7 +979,7 @@ function showRouteDetails(route) {
     setTimeout(() => {
         const detailMap = initDetailMap(centerPoint, route.path);
         // Clean up when modal closes
-        modalCloseButtons[0].addEventListener('click', () => {
+        modalHeader.querySelector('.close-modal').addEventListener('click', () => {
             detailMap.remove();
         });
     }, 100);
@@ -945,11 +1056,41 @@ function highlightStars(rating) {
 
 // Show add route modal
 function showAddRouteModal() {
+    // Get translations
+    const storedPrefs = localStorage.getItem('userPreferences');
+    const prefs = storedPrefs ? JSON.parse(storedPrefs) : {};
+    const translationKeys = getTranslationKeys();
+    const translations = prefs.language && translationKeys[prefs.language] ? 
+        translationKeys[prefs.language] : translationKeys['en'];
+
     // Reset form
     document.getElementById('route-title').value = '';
     document.getElementById('route-desc').value = '';
     document.getElementById('route-difficulty-input').value = 'easy';
     document.getElementById('route-duration-input').value = '';
+    
+    // Update button and form labels with translations
+    document.querySelector('#add-route-modal .modal-header h2').textContent = translations.addRouteBtn;
+    document.querySelector('label[for="route-title"]').textContent = translations.routeTitle;
+    document.querySelector('label[for="route-desc"]').textContent = translations.routeDescription;
+    document.querySelector('label[for="route-difficulty-input"]').textContent = translations.difficulty;
+    document.querySelector('label[for="route-duration-input"]').textContent = translations.duration;
+    document.getElementById('route-title').placeholder = translations.routeTitle;
+    document.getElementById('route-desc').placeholder = translations.routeDescription;
+    document.getElementById('draw-route').textContent = translations.startDrawing;
+    document.getElementById('finish-drawing').textContent = translations.finishDrawing;
+    document.getElementById('clear-route').textContent = translations.clearRoute;
+    document.getElementById('submit-route').textContent = translations.submitRoute;
+    
+    // Update difficulty options with translations
+    const difficultySelect = document.getElementById('route-difficulty-input');
+    const easyOption = difficultySelect.querySelector('option[value="easy"]');
+    const moderateOption = difficultySelect.querySelector('option[value="moderate"]');
+    const hardOption = difficultySelect.querySelector('option[value="hard"]');
+    
+    if (easyOption) easyOption.textContent = translations.easy;
+    if (moderateOption) moderateOption.textContent = translations.moderate;
+    if (hardOption) hardOption.textContent = translations.hard;
     
     // Clear any previous drawn route
     newRoutePath = [];
@@ -959,7 +1100,7 @@ function showAddRouteModal() {
     
     // Reset drawing state
     drawingRoute = false;
-    document.getElementById('draw-route').innerText = 'Start Drawing';
+    document.getElementById('draw-route').innerText = translations.startDrawing;
     document.getElementById('draw-route').disabled = false;
     
     // Show the modal first so the map container is visible
@@ -999,8 +1140,8 @@ function showAddRouteModal() {
         // Force a redraw of the map
         createRouteMap.invalidateSize(true);
         
-        // Clear the drawing status
-        document.getElementById('drawing-status').innerHTML = 'Click "Start Drawing" to begin creating your route.';
+        // Clear the drawing status with translated text
+        document.getElementById('drawing-status').innerHTML = `${translations.startDrawing} ${translations.routeDescription}`;
         document.getElementById('finish-drawing').setAttribute('disabled', 'disabled');
         
         // Clean up when modal closes
@@ -1024,14 +1165,21 @@ function showAddRouteModal() {
 
 // Start drawing a route
 function startDrawingRoute() {
+    // Get translations
+    const storedPrefs = localStorage.getItem('userPreferences');
+    const prefs = storedPrefs ? JSON.parse(storedPrefs) : {};
+    const translationKeys = getTranslationKeys();
+    const translations = prefs.language && translationKeys[prefs.language] ? 
+        translationKeys[prefs.language] : translationKeys['en'];
+    
     drawingRoute = true;
-    document.getElementById('draw-route').innerText = 'Drawing...';
+    document.getElementById('draw-route').innerText = translations.loading;
     document.getElementById('draw-route').disabled = true;
     document.getElementById('finish-drawing').setAttribute('disabled', 'disabled');
     
     // Show instructions to user
     document.getElementById('drawing-status').innerHTML = 
-        'Click on the map to add points to your route. Add at least 2 points.';
+        translations.startDrawing;
     document.getElementById('drawing-status').className = 'drawing-status active';
 }
 
@@ -1081,8 +1229,15 @@ function addPointToRoute(point, mapInstance) {
 
 // Finish drawing a route
 function finishDrawingRoute() {
+    // Get translations
+    const storedPrefs = localStorage.getItem('userPreferences');
+    const prefs = storedPrefs ? JSON.parse(storedPrefs) : {};
+    const translationKeys = getTranslationKeys();
+    const translations = prefs.language && translationKeys[prefs.language] ? 
+        translationKeys[prefs.language] : translationKeys['en'];
+    
     drawingRoute = false;
-    document.getElementById('draw-route').innerText = 'Start Drawing';
+    document.getElementById('draw-route').innerText = translations.startDrawing;
     document.getElementById('draw-route').disabled = false;
     
     if (newRoutePath.length < 2) {
@@ -1105,7 +1260,7 @@ function finishDrawingRoute() {
     
     // Update status
     document.getElementById('drawing-status').innerHTML = 
-        `Route created with ${newRoutePath.length} points and ${distance.toFixed(1)} km distance`;
+        `${translations.finishDrawing}: ${newRoutePath.length} ${translations.distance}: ${distance.toFixed(1)} ${userDistanceUnit}`;
     document.getElementById('drawing-status').className = 'drawing-status success';
     
     // Disable finish button after completion
@@ -1114,119 +1269,114 @@ function finishDrawingRoute() {
 
 // Clear the drawn route
 function clearDrawnRoute() {
+    // Get translations
+    const storedPrefs = localStorage.getItem('userPreferences');
+    const prefs = storedPrefs ? JSON.parse(storedPrefs) : {};
+    const translationKeys = getTranslationKeys();
+    const translations = prefs.language && translationKeys[prefs.language] ? 
+        translationKeys[prefs.language] : translationKeys['en'];
+    
     newRoutePath = [];
     if (newRouteLayer) {
         newRouteLayer.clearLayers();
     }
     
     drawingRoute = false;
-    document.getElementById('draw-route').innerText = 'Start Drawing';
+    document.getElementById('draw-route').innerText = translations.startDrawing;
     document.getElementById('draw-route').disabled = false;
     document.getElementById('route-duration-input').value = '';
     document.getElementById('finish-drawing').setAttribute('disabled', 'disabled');
     
     // Reset drawing status
-    document.getElementById('drawing-status').innerHTML = 'Route cleared. Click "Start Drawing" to begin again.';
+    document.getElementById('drawing-status').innerHTML = `${translations.clearRoute}. ${translations.startDrawing}.`;
     document.getElementById('drawing-status').className = 'drawing-status';
 }
 
 // Submit a new route
 function submitNewRoute() {
+    // Get translations
+    const storedPrefs = localStorage.getItem('userPreferences');
+    const prefs = storedPrefs ? JSON.parse(storedPrefs) : {};
+    const translationKeys = getTranslationKeys();
+    const translations = prefs.language && translationKeys[prefs.language] ? 
+        translationKeys[prefs.language] : translationKeys['en'];
+    
+    // Get form values
     const title = document.getElementById('route-title').value.trim();
     const description = document.getElementById('route-desc').value.trim();
     const difficulty = document.getElementById('route-difficulty-input').value;
-    const durationInput = document.getElementById('route-duration-input').value.trim();
+    const duration = parseInt(document.getElementById('route-duration-input').value);
     
-    // Validate inputs
+    // Validate form
     if (!title) {
-        alert('Please enter a title for your route.');
+        alert(`${translations.routeTitle} ${translations.required}`);
         return;
     }
     
     if (!description) {
-        alert('Please enter a description for your route.');
+        alert(`${translations.routeDescription} ${translations.required}`);
+        return;
+    }
+    
+    if (isNaN(duration) || duration <= 0) {
+        alert(`${translations.duration} ${translations.required}`);
         return;
     }
     
     if (newRoutePath.length < 2) {
-        alert('Please draw a route on the map with at least 2 points.');
+        alert(`${translations.routeDescription} ${translations.required}`);
         return;
     }
     
-    if (!durationInput) {
-        alert('Please enter an estimated duration for your route.');
-        return;
-    }
+    // Disable submit button to prevent multiple submissions
+    const submitButton = document.getElementById('submit-route');
+    submitButton.disabled = true;
+    submitButton.textContent = translations.loading;
     
-    const duration = parseInt(durationInput);
-    if (isNaN(duration) || duration <= 0) {
-        alert('Please enter a valid duration in minutes.');
-        return;
-    }
-    
-    // Calculate distance
+    // Calculate route distance
     const distance = calculatePathDistance(newRoutePath);
     
-    // Create a new route object
+    // Create route object
     const newRoute = {
-        title,
-        description,
+        id: 'route_' + Date.now(),
+        title: title,
+        description: description,
         path: newRoutePath,
-        duration,
-        difficulty,
-        author: getCurrentUser()?.name || 'Anonymous User'
+        distance: distance,
+        duration: duration,
+        difficulty: difficulty,
+        author_name: 'You',
+        rating: 0,
+        reviews: [],
+        created_at: new Date().toISOString(),
+        user_id: 'current-user' // Mark as created by current user
     };
     
-    // Show loading state
-    document.getElementById('submit-route').disabled = true;
-    document.getElementById('submit-route').textContent = 'Submitting...';
+    // First try the API call
+    const API_BASE_URL = 'http://localhost:5000/api';
     
-    // Get access token if available
-    const accessToken = getAccessToken();
-    const headers = {
-        'Content-Type': 'application/json'
-    };
-    
-    if (accessToken) {
-        headers['Authorization'] = `Bearer ${accessToken}`;
-    }
-    
-    // Try to submit to the API first
-    fetch('/api/routes', {
+    fetch(`${API_BASE_URL}/routes`, {
         method: 'POST',
-        headers: headers,
+        headers: {
+            'Content-Type': 'application/json',
+        },
         body: JSON.stringify(newRoute)
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error('Failed to submit route');
+            throw new Error('Network response was not ok');
         }
         return response.json();
     })
-    .then(savedRoute => {
-        // Use the API response for success path
-        handleRouteSubmissionSuccess(savedRoute);
+    .then(data => {
+        console.log('Route successfully submitted to API:', data);
+        handleRouteSubmissionSuccess(data);
     })
     .catch(error => {
-        console.error('Error submitting route to API:', error);
+        console.warn('Failed to submit route to API, falling back to local storage:', error);
         
-        // Client-side fallback: Create a simulated route
-        const mockNewRoute = {
-            id: Math.floor(Math.random() * 10000) + 1000, // Create a unique ID
-            title,
-            description,
-            path: newRoutePath,
-            distance,
-            duration,
-            difficulty,
-            rating: 0,
-            author: getCurrentUser()?.name || 'Anonymous User',
-            createdAt: new Date(),
-            reviews: []
-        };
-        
-        // Process the new route locally
-        handleRouteSubmissionSuccess(mockNewRoute);
+        // Fallback to local storage
+        handleRouteSubmissionSuccess(newRoute);
     });
 }
 
@@ -1367,40 +1517,40 @@ function submitReview() {
 
 // Delete a route
 function deleteRoute(routeId) {
-    if (!confirm('Are you sure you want to delete this route?')) {
-        return;
-    }
+    // Get translations
+    const storedPrefs = localStorage.getItem('userPreferences');
+    const prefs = storedPrefs ? JSON.parse(storedPrefs) : {};
+    const translationKeys = getTranslationKeys();
+    const translations = prefs.language && translationKeys[prefs.language] ? 
+        translationKeys[prefs.language] : translationKeys['en'];
     
-    // Find the route index
-    const routeIndex = routesData.findIndex(r => r.id === routeId);
+    const index = routesData.findIndex(route => route.id === routeId);
+    if (index === -1) return;
     
-    if (routeIndex === -1) {
-        alert('Route not found.');
-        return;
-    }
+    const routeToDelete = routesData[index];
     
-    // Check if the route belongs to the current user
-    const currentUser = getCurrentUser();
-    if (!currentUser || routesData[routeIndex].author !== currentUser.name) {
-        alert('You can only delete your own routes.');
-        return;
-    }
+    // Remove route from array
+    routesData.splice(index, 1);
     
-    // Remove the route from the array
-    routesData.splice(routeIndex, 1);
-    
-    // Save the updated routes to localStorage
+    // Update localStorage
     saveRoutesToLocalStorage();
     
-    // Refresh the display
+    // Update display
     displayRoutes(routesData);
+    
+    // Remove from map
+    if (routeLayer) {
+        map.removeLayer(routeLayer);
+    }
+    
+    // Add routes back to map (except the deleted one)
     addRoutesToMap(routesData);
     
-    // Show success message
-    locationStatus.innerHTML = 'Route deleted successfully.';
+    // Show a success message
+    locationStatus.innerHTML = `Route "${routeToDelete.title}" has been deleted.`;
     locationStatus.className = 'location-status success';
     
-    // Clear the message after a few seconds
+    // Clear the status after a few seconds
     setTimeout(() => {
         locationStatus.innerHTML = '';
         locationStatus.className = 'location-status';
@@ -1551,4 +1701,381 @@ function applyFilters() {
                 routesLoading.style.display = 'none';
             });
     }
+}
+
+// Helper function to get translation keys
+function getTranslationKeys() {
+    return {
+        'en': {
+            'routesTitle': 'Discover Local Walking Routes',
+            'routesSubtitle': 'Find popular walks near you or share your own adventures',
+            'locateMe': 'Find Routes Near Me',
+            'filterRoutesHeading': 'Filter Routes',
+            'distanceLabel': 'Distance:',
+            'ratingLabel': 'Rating:',
+            'difficultyLabel': 'Difficulty:',
+            'showLabel': 'Show:',
+            'addYourRoute': 'Add Your Route',
+            'findingRoutes': 'Finding nearby routes...',
+            'loadingMap': 'Loading map...',
+            'allDistances': 'All Distances',
+            'short': 'Short (< 2km)',
+            'medium': 'Medium (2-5km)',
+            'long': 'Long (> 5km)',
+            'allRatings': 'All Ratings',
+            'allDifficulties': 'All Difficulties',
+            'easy': 'Easy',
+            'moderate': 'Moderate',
+            'challenging': 'Challenging',
+            'allRoutes': 'All Routes',
+            'myRoutes': 'My Routes',
+            'createdBy': 'Created by:',
+            'reviews': 'Reviews',
+            'addReview': 'Add Your Review',
+            'reviewPlaceholder': 'Share your experience...',
+            'submitReview': 'Submit Review',
+            'addNewRoute': 'Add New Walking Route',
+            'routeTitle': 'Route Title',
+            'routeTitlePlaceholder': 'Enter a descriptive title',
+            'description': 'Description',
+            'routeDescPlaceholder': 'Describe the walking route, points of interest, etc.',
+            'difficultyInput': 'Difficulty',
+            'durationInput': 'Estimated Duration (minutes)',
+            'durationPlaceholder': 'Duration in minutes',
+            'drawRoute': 'Draw Route on Map',
+            'startDrawing': 'Start Drawing',
+            'finishDrawing': 'Finish Drawing',
+            'clearRoute': 'Clear',
+            'drawingStatus': 'Click "Start Drawing" to begin creating your route.',
+            'drawingHint': 'Click on the map to add points. Use "Finish Drawing" when you\'re done.',
+            'submitRoute': 'Submit Route',
+            'noRoutesFound': 'No routes found in this area.',
+            'tryDifferentLocation': 'Try a different location or add your own route.',
+            'locationError': 'Error getting your location. Please try again.',
+            'permissionDenied': 'Location permission denied. Please enable location access.',
+            'locationUnavailable': 'Location information is unavailable.',
+            'locationTimeout': 'Request for location timed out.',
+            'locationUnknownError': 'An unknown error occurred while getting your location.',
+            'routeAddSuccess': 'Your route has been added successfully!',
+            'routeAddError': 'Error adding route. Please try again.',
+            'reviewAddSuccess': 'Your review has been added.',
+            'reviewAddError': 'Error adding review. Please try again.',
+            'invalidRouteData': 'Please fill in all required fields.',
+            'routeTooShort': 'Route is too short. Please add more points.',
+            'confirmDeleteRoute': 'Are you sure you want to delete this route?',
+            'noReviewText': 'Please enter your review text.',
+            'noRatingSelected': 'Please select a rating.',
+            'startDrawingFirst': 'Please start drawing first.',
+            'clickMapToAddPoints': 'Click on the map to add points to your route.',
+            'finishDrawingFirst': 'Please finish drawing before submitting.'
+        },
+        'es': {
+            'routesTitle': 'Descubre Rutas de Caminata Locales',
+            'routesSubtitle': 'Encuentra caminatas populares cerca de ti o comparte tus propias aventuras',
+            'nearMeBtn': 'Encontrar Rutas Cercanas',
+            'filterRoutes': 'Filtrar Rutas',
+            'addRouteBtn': 'Agregar Tu Ruta',
+            'viewDetails': 'Ver Detalles',
+            'delete': 'Eliminar',
+            'distance': 'Distancia',
+            'difficulty': 'Dificultad',
+            'duration': 'Duración',
+            'rating': 'Calificación',
+            'author': 'Autor',
+            'reviews': 'Reseñas',
+            'all': 'Todas',
+            'easy': 'Fácil',
+            'moderate': 'Moderada',
+            'hard': 'Difícil',
+            'short': 'Corta',
+            'medium': 'Media',
+            'long': 'Larga',
+            'closeModal': 'Cerrar',
+            'startDrawing': 'Comenzar a Dibujar',
+            'finishDrawing': 'Finalizar Dibujo',
+            'clearRoute': 'Borrar Ruta',
+            'submitRoute': 'Enviar Ruta',
+            'routeTitle': 'Título de la Ruta',
+            'routeDescription': 'Descripción de la Ruta',
+            'writeReview': 'Escribir una Reseña',
+            'submitReview': 'Enviar Reseña',
+            'loading': 'Cargando...',
+            'noRoutes': 'No se encontraron rutas. Intenta ajustar tus filtros o crear una nueva ruta.',
+            'confirmDelete': '¿Estás seguro de que quieres eliminar esta ruta?',
+            'required': 'es requerido'
+        },
+        'fr': {
+            'routesTitle': 'Découvrez des Itinéraires de Marche Locaux',
+            'routesSubtitle': 'Trouvez des promenades populaires près de chez vous ou partagez vos propres aventures',
+            'nearMeBtn': 'Trouver des Itinéraires à Proximité',
+            'filterRoutes': 'Filtrer les Itinéraires',
+            'addRouteBtn': 'Ajouter Votre Itinéraire',
+            'viewDetails': 'Voir les Détails',
+            'delete': 'Supprimer',
+            'distance': 'Distance',
+            'difficulty': 'Difficulté',
+            'duration': 'Durée',
+            'rating': 'Évaluation',
+            'author': 'Auteur',
+            'reviews': 'Avis',
+            'all': 'Tous',
+            'easy': 'Facile',
+            'moderate': 'Modérée',
+            'hard': 'Difficile',
+            'short': 'Courte',
+            'medium': 'Moyenne',
+            'long': 'Longue',
+            'closeModal': 'Fermer',
+            'startDrawing': 'Commencer à Dessiner',
+            'finishDrawing': 'Terminer le Dessin',
+            'clearRoute': 'Effacer l\'Itinéraire',
+            'submitRoute': 'Soumettre l\'Itinéraire',
+            'routeTitle': 'Titre de l\'Itinéraire',
+            'routeDescription': 'Description de l\'Itinéraire',
+            'writeReview': 'Écrire un Avis',
+            'submitReview': 'Soumettre l\'Avis',
+            'loading': 'Chargement...',
+            'noRoutes': 'Aucun itinéraire trouvé. Essayez d\'ajuster vos filtres ou de créer un nouvel itinéraire.',
+            'confirmDelete': 'Êtes-vous sûr de vouloir supprimer cet itinéraire?',
+            'required': 'est requis'
+        },
+        'de': {
+            'routesTitle': 'Entdecken Sie lokale Wanderrouten',
+            'routesSubtitle': 'Finden Sie beliebte Spaziergänge in Ihrer Nähe oder teilen Sie Ihre eigenen Abenteuer',
+            'nearMeBtn': 'Routen in meiner Nähe finden',
+            'filterRoutes': 'Routen filtern',
+            'addRouteBtn': 'Ihre Route hinzufügen',
+            'viewDetails': 'Details anzeigen',
+            'delete': 'Löschen',
+            'distance': 'Entfernung',
+            'difficulty': 'Schwierigkeit',
+            'duration': 'Dauer',
+            'rating': 'Bewertung',
+            'author': 'Autor',
+            'reviews': 'Bewertungen',
+            'all': 'Alle',
+            'easy': 'Leicht',
+            'moderate': 'Mittel',
+            'hard': 'Schwer',
+            'short': 'Kurz',
+            'medium': 'Mittel',
+            'long': 'Lang',
+            'closeModal': 'Schließen',
+            'startDrawing': 'Zeichnen beginnen',
+            'finishDrawing': 'Zeichnen beenden',
+            'clearRoute': 'Route löschen',
+            'submitRoute': 'Route einreichen',
+            'routeTitle': 'Routentitel',
+            'routeDescription': 'Routenbeschreibung',
+            'writeReview': 'Bewertung schreiben',
+            'submitReview': 'Bewertung abschicken',
+            'loading': 'Wird geladen...',
+            'noRoutes': 'Keine Routen gefunden. Versuchen Sie, Ihre Filter anzupassen oder eine neue Route zu erstellen.',
+            'confirmDelete': 'Sind Sie sicher, dass Sie diese Route löschen möchten?',
+            'required': 'ist erforderlich'
+        },
+        'it': {
+            'routesTitle': 'Scopri Percorsi di Passeggiata Locali',
+            'routesSubtitle': 'Trova passeggiate popolari vicino a te o condividi le tue avventure',
+            'nearMeBtn': 'Trova Percorsi Vicini',
+            'filterRoutes': 'Filtra Percorsi',
+            'addRouteBtn': 'Aggiungi il Tuo Percorso',
+            'viewDetails': 'Vedi Dettagli',
+            'delete': 'Elimina',
+            'distance': 'Distanza',
+            'difficulty': 'Difficoltà',
+            'duration': 'Durata',
+            'rating': 'Valutazione',
+            'author': 'Autore',
+            'reviews': 'Recensioni',
+            'all': 'Tutti',
+            'easy': 'Facile',
+            'moderate': 'Moderata',
+            'hard': 'Difficile',
+            'short': 'Breve',
+            'medium': 'Media',
+            'long': 'Lunga',
+            'closeModal': 'Chiudi',
+            'startDrawing': 'Inizia a Disegnare',
+            'finishDrawing': 'Termina Disegno',
+            'clearRoute': 'Cancella Percorso',
+            'submitRoute': 'Invia Percorso',
+            'routeTitle': 'Titolo del Percorso',
+            'routeDescription': 'Descrizione del Percorso',
+            'writeReview': 'Scrivi una Recensione',
+            'submitReview': 'Invia Recensione',
+            'loading': 'Caricamento...',
+            'noRoutes': 'Nessun percorso trovato. Prova a modificare i filtri o a creare un nuovo percorso.',
+            'confirmDelete': 'Sei sicuro di voler eliminare questo percorso?',
+            'required': 'è richiesto'
+        },
+        'pt': {
+            'routesTitle': 'Descubra Rotas de Caminhada Locais',
+            'routesSubtitle': 'Encontre caminhadas populares perto de você ou compartilhe suas próprias aventuras',
+            'nearMeBtn': 'Encontrar Rotas Próximas',
+            'filterRoutes': 'Filtrar Rotas',
+            'addRouteBtn': 'Adicionar Sua Rota',
+            'viewDetails': 'Ver Detalhes',
+            'delete': 'Excluir',
+            'distance': 'Distância',
+            'difficulty': 'Dificuldade',
+            'duration': 'Duração',
+            'rating': 'Avaliação',
+            'author': 'Autor',
+            'reviews': 'Avaliações',
+            'all': 'Todas',
+            'easy': 'Fácil',
+            'moderate': 'Moderada',
+            'hard': 'Difícil',
+            'short': 'Curta',
+            'medium': 'Média',
+            'long': 'Longa',
+            'closeModal': 'Fechar',
+            'startDrawing': 'Começar a Desenhar',
+            'finishDrawing': 'Finalizar Desenho',
+            'clearRoute': 'Limpar Rota',
+            'submitRoute': 'Enviar Rota',
+            'routeTitle': 'Título da Rota',
+            'routeDescription': 'Descrição da Rota',
+            'writeReview': 'Escrever uma Avaliação',
+            'submitReview': 'Enviar Avaliação',
+            'loading': 'Carregando...',
+            'noRoutes': 'Nenhuma rota encontrada. Tente ajustar seus filtros ou criar uma nova rota.',
+            'confirmDelete': 'Tem certeza que deseja excluir esta rota?',
+            'required': 'é obrigatório'
+        },
+        'ja': {
+            'routesTitle': '地元のウォーキングルートを発見',
+            'routesSubtitle': '人気のウォーキングコースを見つけたり、自分の冒険を共有しましょう',
+            'nearMeBtn': '近くのルートを探す',
+            'filterRoutes': 'ルートをフィルタリング',
+            'addRouteBtn': 'ルートを追加',
+            'viewDetails': '詳細を見る',
+            'delete': '削除',
+            'distance': '距離',
+            'difficulty': '難易度',
+            'duration': '時間',
+            'rating': '評価',
+            'author': '作成者',
+            'reviews': 'レビュー',
+            'all': 'すべて',
+            'easy': '簡単',
+            'moderate': '普通',
+            'hard': '難しい',
+            'short': '短い',
+            'medium': '中程度',
+            'long': '長い',
+            'closeModal': '閉じる',
+            'startDrawing': '描画開始',
+            'finishDrawing': '描画完了',
+            'clearRoute': 'ルートをクリア',
+            'submitRoute': 'ルートを送信',
+            'routeTitle': 'ルートのタイトル',
+            'routeDescription': 'ルートの説明',
+            'writeReview': 'レビューを書く',
+            'submitReview': 'レビューを送信',
+            'loading': '読み込み中...',
+            'noRoutes': 'ルートが見つかりません。フィルターを調整するか、新しいルートを作成してみてください。',
+            'confirmDelete': 'このルートを削除してもよろしいですか？',
+            'required': 'は必須です'
+        },
+        'zh': {
+            'routesTitle': '发现当地步行路线',
+            'routesSubtitle': '找到您附近的热门步行路线或分享您自己的冒险',
+            'nearMeBtn': '查找附近的路线',
+            'filterRoutes': '筛选路线',
+            'addRouteBtn': '添加您的路线',
+            'viewDetails': '查看详情',
+            'delete': '删除',
+            'distance': '距离',
+            'difficulty': '难度',
+            'duration': '时长',
+            'rating': '评分',
+            'author': '作者',
+            'reviews': '评论',
+            'all': '全部',
+            'easy': '简单',
+            'moderate': '中等',
+            'hard': '困难',
+            'short': '短程',
+            'medium': '中程',
+            'long': '长程',
+            'closeModal': '关闭',
+            'startDrawing': '开始绘制',
+            'finishDrawing': '完成绘制',
+            'clearRoute': '清除路线',
+            'submitRoute': '提交路线',
+            'routeTitle': '路线标题',
+            'routeDescription': '路线描述',
+            'writeReview': '写评论',
+            'submitReview': '提交评论',
+            'loading': '加载中...',
+            'noRoutes': '未找到路线。尝试调整筛选条件或创建新路线。',
+            'confirmDelete': '您确定要删除此路线吗？',
+            'required': '是必需的'
+        },
+        'ko': {
+            'routesTitle': '주변 경로 탐색',
+            'routesSubtitle': '주변의 인기 있는 산책로를 찾거나 직접 경험을 공유하세요',
+            'locateMe': '내 주변 경로 찾기',
+            'filterRoutesHeading': '경로 필터링',
+            'distanceLabel': '거리:',
+            'ratingLabel': '평점:',
+            'difficultyLabel': '난이도:',
+            'showLabel': '표시:',
+            'addYourRoute': '내 경로 추가',
+            'findingRoutes': '주변 경로 찾는 중...',
+            'loadingMap': '지도 로딩 중...',
+            'allDistances': '모든 거리',
+            'short': '짧은 거리 (< 2km)',
+            'medium': '중간 거리 (2-5km)',
+            'long': '긴 거리 (> 5km)',
+            'allRatings': '모든 평점',
+            'allDifficulties': '모든 난이도',
+            'easy': '쉬움',
+            'moderate': '보통',
+            'challenging': '도전적',
+            'allRoutes': '모든 경로',
+            'myRoutes': '내 경로',
+            'createdBy': '작성자:',
+            'reviews': '리뷰',
+            'addReview': '리뷰 추가',
+            'reviewPlaceholder': '경험을 공유하세요...',
+            'submitReview': '리뷰 제출',
+            'addNewRoute': '새 경로 추가',
+            'routeTitle': '경로 제목',
+            'routeTitlePlaceholder': '설명적인 제목을 입력하세요',
+            'description': '설명',
+            'routeDescPlaceholder': '산책로, 관심 지점 등을 설명하세요',
+            'difficultyInput': '난이도',
+            'durationInput': '예상 소요 시간 (분)',
+            'durationPlaceholder': '소요 시간(분)',
+            'drawRoute': '지도에 경로 그리기',
+            'startDrawing': '그리기 시작',
+            'finishDrawing': '그리기 완료',
+            'clearRoute': '지우기',
+            'drawingStatus': '"그리기 시작"을 클릭하여 경로 생성을 시작하세요.',
+            'drawingHint': '지도를 클릭하여 포인트를 추가하세요. 완료되면 "그리기 완료"를 사용하세요.',
+            'submitRoute': '경로 제출',
+            'noRoutesFound': '이 지역에서 경로를 찾을 수 없습니다.',
+            'tryDifferentLocation': '다른 위치를 시도하거나 자신의 경로를 추가하세요.',
+            'locationError': '위치를 가져오는 중 오류가 발생했습니다. 다시 시도하세요.',
+            'permissionDenied': '위치 권한이 거부되었습니다. 위치 액세스를 활성화하세요.',
+            'locationUnavailable': '위치 정보를 사용할 수 없습니다.',
+            'locationTimeout': '위치 요청 시간이 초과되었습니다.',
+            'locationUnknownError': '위치를 가져오는 중 알 수 없는 오류가 발생했습니다.',
+            'routeAddSuccess': '경로가 성공적으로 추가되었습니다!',
+            'routeAddError': '경로 추가 중 오류가 발생했습니다. 다시 시도하세요.',
+            'reviewAddSuccess': '리뷰가 추가되었습니다.',
+            'reviewAddError': '리뷰 추가 중 오류가 발생했습니다. 다시 시도하세요.',
+            'invalidRouteData': '모든 필수 필드를 작성하세요.',
+            'routeTooShort': '경로가 너무 짧습니다. 더 많은 포인트를 추가하세요.',
+            'confirmDeleteRoute': '이 경로를 삭제하시겠습니까?',
+            'noReviewText': '리뷰 텍스트를 입력하세요.',
+            'noRatingSelected': '평점을 선택하세요.',
+            'startDrawingFirst': '먼저 그리기를 시작하세요.',
+            'clickMapToAddPoints': '지도를 클릭하여 경로에 포인트를 추가하세요.',
+            'finishDrawingFirst': '제출하기 전에 그리기를 완료하세요.'
+        }
+    };
 } 
