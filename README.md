@@ -1,4 +1,4 @@
-# Travel Companion App
+# Travel Companion App (EchoStep)
 
 A comprehensive travel companion application with the following features:
 
