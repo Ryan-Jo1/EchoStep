@@ -217,13 +217,16 @@ def create_route():
     # Get route data from request body
     data = request.json
     
+    # Get current user from request headers
+    current_user = request.headers.get('X-User-Name', 'Anonymous User')
+    
     # Validate required fields
     required_fields = ["title", "description", "path", "difficulty", "duration"]
     for field in required_fields:
         if field not in data:
             return jsonify({"error": f"Missing required field: {field}"}), 400
     
-    # Create a new route
+    # Create a new route with proper user information and timestamp
     new_route = {
         "id": next_route_id,
         "title": data["title"],
@@ -233,8 +236,9 @@ def create_route():
         "duration": data["duration"],
         "difficulty": data["difficulty"],
         "rating": 0,  # New routes start with no rating
-        "author": data.get("author", "Anonymous User"),  # Default to anonymous
-        "created_at": datetime.now().isoformat(),
+        "author": current_user,  # Use the current user's name
+        "author_name": current_user,  # Add author_name for consistency
+        "created_at": datetime.now().isoformat(),  # Current timestamp
         "reviews": []
     }
     
@@ -248,42 +252,57 @@ def create_route():
 def add_review(route_id):
     global next_review_id
     
-    # Find the route
-    route = next((r for r in routes_data if r["id"] == route_id), None)
-    
-    if route is None:
-        return jsonify({"error": "Route not found"}), 404
+    # Get current user from request headers
+    current_user = request.headers.get('X-User-Name', 'Anonymous User')
     
     # Get review data from request body
     data = request.json
     
     # Validate required fields
     if "rating" not in data or "text" not in data:
-        return jsonify({"error": "Rating and text are required"}), 400
+        return jsonify({"error": "Missing required fields: rating and text"}), 400
     
-    # Validate rating
-    rating = data["rating"]
-    if not isinstance(rating, int) or rating < 1 or rating > 5:
-        return jsonify({"error": "Rating must be an integer between 1 and 5"}), 400
+    # Find the route
+    route = next((r for r in routes_data if r["id"] == route_id), None)
+    if not route:
+        return jsonify({"error": "Route not found"}), 404
     
-    # Create a new review
+    # Create new review
     new_review = {
         "id": next_review_id,
-        "author": data.get("author", "Anonymous User"),  # Default to anonymous
-        "rating": rating,
+        "author": current_user,  # Use the current user's name
+        "rating": data["rating"],
         "text": data["text"],
-        "date": datetime.now().isoformat()
+        "date": datetime.now().isoformat()  # Use current timestamp
     }
     
-    # Add the review to the route
+    # Add review to route
     route["reviews"].append(new_review)
     next_review_id += 1
     
-    # Update the route's rating
-    total_rating = sum(r["rating"] for r in route["reviews"])
-    route["rating"] = round(total_rating / len(route["reviews"]), 1)
+    # Update route rating
+    if route["reviews"]:
+        route["rating"] = round(sum(r["rating"] for r in route["reviews"]) / len(route["reviews"]), 1)
     
     return jsonify(new_review), 201
+
+@routes_api.route('/api/routes/<int:route_id>', methods=['DELETE'])
+def delete_route(route_id):
+    # Get current user from request headers
+    current_user = request.headers.get('X-User-Name', 'Anonymous User')
+    
+    # Find the route
+    route = next((r for r in routes_data if r["id"] == route_id), None)
+    if not route:
+        return jsonify({"error": "Route not found"}), 404
+    
+    # Check if the current user is the author
+    if route["author"] != current_user:
+        return jsonify({"error": "You can only delete your own routes"}), 403
+    
+    # Remove the route
+    routes_data.remove(route)
+    return jsonify({"message": "Route deleted successfully"}), 200
 
 @routes_api.route('/api/routes/filter', methods=['GET'])
 def filter_routes():

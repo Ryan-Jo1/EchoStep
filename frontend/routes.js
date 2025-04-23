@@ -24,6 +24,7 @@ function loadUserPreferences() {
         
         const previousUnit = userDistanceUnit;
         
+        // Always update preferences regardless of login status
         if (prefs.distanceUnit) {
             userDistanceUnit = prefs.distanceUnit;
             console.log('Using distance unit from preferences:', userDistanceUnit);
@@ -715,9 +716,18 @@ function getRandomReviewText() {
 
 // Display routes in the sidebar
 function displayRoutes(routes) {
-    // Clear the current routes list
-    routesList.innerHTML = '';
-    routesLoading.style.display = 'none';
+    const routesList = document.getElementById('routes-list');
+    routesList.innerHTML = ''; // Clear existing routes
+    
+    if (routes.length === 0) {
+        routesList.innerHTML = `
+            <div class="no-routes-message">
+                <p>No routes found matching your criteria.</p>
+                <p>Try adjusting your filters or adding a new route!</p>
+            </div>
+        `;
+        return;
+    }
     
     // Get stored preferences
     const storedPrefs = localStorage.getItem('userPreferences');
@@ -728,25 +738,17 @@ function displayRoutes(routes) {
     const translations = prefs.language && translationKeys[prefs.language] ? 
         translationKeys[prefs.language] : translationKeys['en'];
     
-    // If no routes, show message
-    if (routes.length === 0) {
-        routesList.innerHTML = `<div class="no-routes">${translations.noRoutes}</div>`;
-        return;
-    }
-    
     // Get current user
     const currentUser = getCurrentUser();
     
     // Create a route card for each route
     routes.forEach(route => {
-        // Check if this is the user's own route
-        const isUserRoute = (route.user_id === 'current-user') || 
-                            (currentUser && route.author === currentUser.name) ||
-                            (currentUser && route.author_name === currentUser.name);
-        
         const formattedDistance = formatDistance(route.distance);
-        const formattedDate = formatDate(new Date(route.created_at));
+        const formattedDate = formatDate(route.created_at);
         const stars = generateStarRating(route.rating);
+        
+        // Get author name, defaulting to 'Anonymous User' if not available
+        const authorName = route.author_name || route.author || 'Anonymous User';
         
         const routeCard = document.createElement('div');
         routeCard.className = 'route-card';
@@ -770,13 +772,10 @@ function displayRoutes(routes) {
                 <div class="route-rating">${stars}</div>
                 <p class="route-description">${route.description}</p>
                 <div class="route-footer">
-                    <span class="route-author">${translations.author}: ${route.author_name || route.author}</span>
+                    <span class="route-author">${authorName}</span>
                     <span class="route-date">${formattedDate}</span>
                 </div>
             </div>
-            ${isUserRoute ? `<div class="route-actions">
-                <button class="delete-route-btn" data-route-id="${route.id}">${translations.delete}</button>
-            </div>` : ''}
         `;
         
         // Add the route card to the list
@@ -831,23 +830,22 @@ function generateStarRating(rating) {
 
 // Format date for display
 function formatDate(date) {
+    if (!date) return '';
+    
     // Convert string date to Date object if needed
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     
     // Handle invalid dates
     if (!(dateObj instanceof Date) || isNaN(dateObj)) {
-        return 'Unknown date';
+        return '';
     }
     
-    const now = new Date();
-    const diff = Math.floor((now - dateObj) / (1000 * 60 * 60 * 24)); // Difference in days
-    
-    if (diff === 0) return 'Today';
-    if (diff === 1) return 'Yesterday';
-    if (diff < 7) return `${diff} days ago`;
-    
-    // Format the date using toLocaleDateString
-    return dateObj.toLocaleDateString();
+    // Format the date as MM/DD/YYYY
+    return dateObj.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
 }
 
 // Add routes to the map
@@ -935,7 +933,7 @@ function showRouteDetails(route) {
     modalHeader.innerHTML = `
         <h2 id="modal-route-title">${route.title}</h2>
         ${isUserRoute ? 
-            `<button class="delete-detail-btn" data-route-id="${route.id}">${translations.delete}</button>` : 
+            `<button class="delete-detail-btn" data-route-id="${route.id}">Delete</button>` : 
             ''}
         <button class="close-modal">&times;</button>
     `;
@@ -1070,13 +1068,18 @@ function showAddRouteModal() {
     document.getElementById('route-duration-input').value = '';
     
     // Update button and form labels with translations
-    document.querySelector('#add-route-modal .modal-header h2').textContent = translations.addRouteBtn;
+    document.querySelector('#add-route-modal .modal-header h2').textContent = translations.addNewRoute;
     document.querySelector('label[for="route-title"]').textContent = translations.routeTitle;
-    document.querySelector('label[for="route-desc"]').textContent = translations.routeDescription;
-    document.querySelector('label[for="route-difficulty-input"]').textContent = translations.difficulty;
-    document.querySelector('label[for="route-duration-input"]').textContent = translations.duration;
-    document.getElementById('route-title').placeholder = translations.routeTitle;
-    document.getElementById('route-desc').placeholder = translations.routeDescription;
+    document.querySelector('label[for="route-desc"]').textContent = translations.description;
+    document.querySelector('label[for="route-difficulty-input"]').textContent = translations.difficultyInput;
+    document.querySelector('label[for="route-duration-input"]').textContent = translations.durationInput;
+    
+    // Update placeholders
+    document.getElementById('route-title').placeholder = translations.routeTitlePlaceholder;
+    document.getElementById('route-desc').placeholder = translations.routeDescPlaceholder;
+    document.getElementById('route-duration-input').placeholder = translations.durationPlaceholder;
+    
+    // Update button text
     document.getElementById('draw-route').textContent = translations.startDrawing;
     document.getElementById('finish-drawing').textContent = translations.finishDrawing;
     document.getElementById('clear-route').textContent = translations.clearRoute;
@@ -1336,6 +1339,10 @@ function submitNewRoute() {
     // Calculate route distance
     const distance = calculatePathDistance(newRoutePath);
     
+    // Get current user
+    const currentUser = getCurrentUser();
+    const authorName = currentUser ? currentUser.name : 'Anonymous User';
+    
     // Create route object
     const newRoute = {
         id: 'route_' + Date.now(),
@@ -1345,7 +1352,8 @@ function submitNewRoute() {
         distance: distance,
         duration: duration,
         difficulty: difficulty,
-        author_name: 'You',
+        author: authorName,
+        author_name: authorName,
         rating: 0,
         reviews: [],
         created_at: new Date().toISOString(),
@@ -1359,6 +1367,7 @@ function submitNewRoute() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-User-Name': authorName // Add user name to headers
         },
         body: JSON.stringify(newRoute)
     })
